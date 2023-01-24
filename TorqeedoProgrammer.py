@@ -109,14 +109,22 @@ class Window(QDialog):
 		self.torqeedoIdComboBox.addItems(self.torqeedoIdList)
 
 		# creating a form layout
-		layout = QFormLayout()
+		self.selectTorqeedoIdLayout = QFormLayout()
 
 		# adding rows
 		# for name and adding input text
-		layout.addRow(QLabel("TorqeedoId"), self.torqeedoIdComboBox)
+
+		refreshBtn = QPushButton()
+		refreshBtn.setText("Refresh")
+		refreshBtn.move(64,32)
+		refreshBtn.clicked.connect(self.getTorqeedoList)
+
+		self.selectTorqeedoIdLayout.addRow(refreshBtn)
+
+		self.selectTorqeedoIdLayout.addRow(QLabel("TorqeedoId"), self.torqeedoIdComboBox)
 
 		# setting layout
-		self.selectTorqeedoIdGroupBox.setLayout(layout)
+		self.selectTorqeedoIdGroupBox.setLayout(self.selectTorqeedoIdLayout)
 
 		# creating a dialog button for ok and cancel
 		self.selectTorqeedoIdButtonBox = QDialogButtonBox(QDialogButtonBox.Ok)
@@ -140,6 +148,10 @@ class Window(QDialog):
 
 		# adding button box to the layout
 		self.mainLayout.addWidget(self.selectTorqeedoIdButtonBox)
+
+		self.getTorqeedoList()
+
+	def getTorqeedoList(self):
 		#request to get the torqeedo id list
 		url = 'https://app.trackloisirs.com/api/frontend/torqeedoControllers/list'
 		headers={'authorization': 'access_token ' + self.accessToken}	
@@ -152,7 +164,8 @@ class Window(QDialog):
 				self.getTorqeedoIdError.setText(res['message'])
 			else:
 				self.getTorqeedoIdError = QLabel(res['message'])
-				layout.addRow(self.getTorqeedoIdError)
+				self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
+		self.torqeedoIdComboBox.clear()
 		self.torqeedoIdComboBox.addItems([item["kingwoId"] for item in self.torqeedoIdList])
 
 	# method to change page after torqeedo Id is selected
@@ -184,11 +197,16 @@ class Window(QDialog):
 		# creating a line edit for email connexion
 		# creating a form layout
 		self.publicKeySignLayout = QFormLayout()
+		refreshBtn = QPushButton()
+		refreshBtn.setText("Refresh")
+		refreshBtn.move(64,32)
+		refreshBtn.clicked.connect(self.getESP32Signature)
 
+		self.publicKeySignLayout.addRow(refreshBtn)
 		# adding rows
 		# for name and adding input text
 		self.publicKeySignLine = QLabel("Chargement...")
-		self.publicKeySignLayout.addRow(QLabel("Public key sign"), self.publicKeySignLine)
+		self.publicKeySignLayout.addRow(QLabel("Public key sign :"), self.publicKeySignLine)
 
 		# setting layout
 		self.activateESP32SignatureGroupBox.setLayout(self.publicKeySignLayout)
@@ -216,6 +234,9 @@ class Window(QDialog):
 		# adding button box to the layout
 		self.mainLayout.addWidget(self.activateESP32SignatureButtonBox)
 
+		self.getESP32Signature()
+
+	def getESP32Signature(self):
 		url = 'https://app.trackloisirs.com/api/frontend/torqeedoControllers/getESP32Signature'
 		headers={'authorization': 'access_token ' + self.accessToken}	
 		res = requests.get(url, headers, timeout=5)
