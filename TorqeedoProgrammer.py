@@ -28,11 +28,11 @@ class Window(QDialog):
 		self.connexionGroupBox = QGroupBox("Connexion")
 
 		# creating a line edit for email connexion
-		self.emailLineEdit = QLineEdit("victor.chevillotte@gmail.com")
+		self.emailLineEdit = QLineEdit()
 		self.emailLineEdit.setFixedSize(300,40)
 
 		# creating a line edit for password connexion
-		self.passwordLineEdit = QLineEdit("Vichev11")
+		self.passwordLineEdit = QLineEdit()
 		self.passwordLineEdit.setFixedSize(200,40)
 
 		# creating a form layout
