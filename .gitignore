@@ -2,3 +2,6 @@ build
 dist
 .DS_Store
 *.spec
+firmware_tmp
+bootloader_tmp
+part_table_tmp
