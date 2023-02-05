@@ -1,8 +1,12 @@
 # importing libraries
 from PyQt5.QtWidgets import *
+from PyQt5 import QtGui
 import sys
 import requests
 import json
+
+#base_url = "https://app.trackloisirs.com/api"
+base_url = "http://localhost:8080/api"
 
 # creating a class
 # that inherits the QDialog class
@@ -16,7 +20,7 @@ class Window(QDialog):
 		self.setWindowTitle("TorqeedoProgrammer")
 
 		# setting geometry to the window
-		self.setGeometry(100, 100, 600, 600)
+		self.setGeometry(100, 100, 500, 300)
 
 		# calling the method that create the form
 		self.createConnexionForm()
@@ -29,11 +33,13 @@ class Window(QDialog):
 
 		# creating a line edit for email connexion
 		self.emailLineEdit = QLineEdit()
-		self.emailLineEdit.setFixedSize(300,40)
+		self.emailLineEdit.setText("thomas.trackloisir@gmail.com") 
+		#self.emailLineEdit.setFixedSize(350,40)
 
 		# creating a line edit for password connexion
 		self.passwordLineEdit = QLineEdit()
-		self.passwordLineEdit.setFixedSize(200,40)
+		self.passwordLineEdit.setEchoMode(QLineEdit.Password)
+		#self.passwordLineEdit.setFixedSize(350,40)
 
 		# creating a form layout
 		self.loginLayout = QFormLayout()
@@ -70,9 +76,10 @@ class Window(QDialog):
 		self.setLayout(self.mainLayout)
 
 	def connectToWebsite(self):
-
+		
+		
 		#method to connect to the website
-		url = 'https://app.trackloisirs.com/api/frontend/account/login'
+		url = base_url + '/frontend/account/login'
 		params = {'email': self.emailLineEdit.text(), 'password': self.passwordLineEdit.text(), 'remember': 'true'}
 
 		res = requests.post(url, json = params)
@@ -143,6 +150,12 @@ class Window(QDialog):
 		self.connexionButtonBox.deleteLater()
 		self.connexionButtonBox = None
 
+
+		self.serialConnectionLayout = QVBoxLayout()
+
+
+		#self.mainLayout.setLayout(self.serialConnectionLayout)
+
 		# adding form group box to the layout
 		self.mainLayout.addWidget(self.selectTorqeedoIdGroupBox)
 
@@ -153,10 +166,12 @@ class Window(QDialog):
 
 	def getTorqeedoList(self):
 		#request to get the torqeedo id list
-		url = 'https://app.trackloisirs.com/api/frontend/torqeedoControllers/list'
-		headers={'authorization': 'access_token ' + self.accessToken}	
-		res = requests.get(url, headers, timeout=5)
+		url = base_url + '/backend/pythonProgrammer/getTorqeedoControllersList'
+		headers={'authorization': 'Bearer ' + self.accessToken}	
+		res = requests.get(url, headers = headers, timeout=5)
 		res = res.json()
+		print(headers)
+
 		if(res['status'] == 200):
 			self.torqeedoIdList = res['data']
 		else:
@@ -166,13 +181,15 @@ class Window(QDialog):
 				self.getTorqeedoIdError = QLabel(res['message'])
 				self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
 		self.torqeedoIdComboBox.clear()
+		print(self.torqeedoIdList)
 		self.torqeedoIdComboBox.addItems([item["kingwoId"] for item in self.torqeedoIdList])
 
 	# method to change page after torqeedo Id is selected
 	def selectTorqeedoId(self):
 
 		# printing the form information
-		print("troqeedo Id : {0}".format(self.torqeedoIdComboBox.currentText()))
+		self.torqCtrlId = self.torqeedoIdComboBox.currentText()
+		print("troqeedo Id : {0}".format(self.torqCtrlId))
 
 		self.createActivateESP32SignatureForm()
 
@@ -237,19 +254,20 @@ class Window(QDialog):
 		self.getESP32Signature()
 
 	def getESP32Signature(self):
-		url = 'https://app.trackloisirs.com/api/frontend/torqeedoControllers/getESP32Signature'
-		headers={'authorization': 'access_token ' + self.accessToken}	
+		url = base_url + '/backend/pythonProgrammer/getHashSigningKey'
+		headers={'authorization': 'access_token ' + self.accessToken, 'torqctrlid': self.torqCtrlId}	
 		res = requests.get(url, headers, timeout=5)
+
 		res = res.json()
 		if(res['status'] == 200):
-			self.torqeedoIdList = res['data']
+			self.torqeedoHashKey_base64 = res['hashkey_b64']
 		else:
 			if(hasattr(self, 'getESP32SignatureError')):
 				self.getESP32SignatureError.setText(res['message'])
 			else:
 				self.getESP32SignatureError = QLabel(res['message'])
 				self.publicKeySignLayout.addRow(self.getESP32SignatureError)
-		self.publicKeySignLine.setText(res['data']['publicKeySign'])
+		self.publicKeySignLine.setText(self.torqeedoHashKey_base64)
 
 		# get info method called when form is accepted
 
