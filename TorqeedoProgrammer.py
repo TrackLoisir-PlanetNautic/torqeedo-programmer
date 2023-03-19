@@ -154,8 +154,8 @@ SUPPORTED_CHIPS = {
 
 
 
-#base_url = "https://app.trackloisirs.com/api"
-base_url = "http://localhost:8080/api"
+base_url = "https://app.trackloisirs.com/api"
+#base_url = "http://localhost:8080/api"
 
 
 def _update_image_flash_params(esp, address, args, image):
@@ -270,15 +270,17 @@ class SelectTrackerLayout(QVBoxLayout):
 
         if(res['status'] == 200):
             self.torqeedoIdList = res['data']
+            self.torqeedoIdComboBox.clear()
+            self.torqeedoIdComboBox.addItems(["Select"])
+            print(self.torqeedoIdList)
+            self.torqeedoIdComboBox.addItems([item["kingwoId"] for item in self.torqeedoIdList])
         else:
             if(hasattr(self, 'getTorqeedoIdError')):
                 self.getTorqeedoIdError.setText(res['message'])
             else:
                 self.getTorqeedoIdError = QLabel(res['message'])
-                self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
-        self.torqeedoIdComboBox.clear()
-        self.torqeedoIdComboBox.addItems(["Select"])
-        self.torqeedoIdComboBox.addItems([item["kingwoId"] for item in self.torqeedoIdList])
+                #self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
+
 
     def select_tracker(self, id):
         print("Select ID")
@@ -324,6 +326,94 @@ def hexify(bitstring, separator=""):
     return separator.join(("%02x" % b) for b in as_bytes)
 
 
+class ResultTestLayout(QVBoxLayout):
+
+    def __init__(self):
+        super(ResultTestLayout, self).__init__()
+        
+        self.serialConnected = False
+        self.selectedSerialPort = None
+
+        self.SerialLayout = QVBoxLayout()
+
+        self.addLayout(self.SerialLayout)
+
+        self.resetESP32ForAResult = QLabel("Click on Reset ESP32 for a result")
+        self.SerialLayout.addWidget(self.resetESP32ForAResult)
+
+
+    def checkPartTableArray(self, partArray):
+        if partArray == [['0', 'nvs', 'WiFi', 'data', '01', '02', '00018000'], ['1', 'otadata', 'OTA', 'data', '01', '00', '0001e000'], ['2', 'app0', 'OTA', 'app', '00', '10', '00020000'], ['3', 'app1', 'OTA', 'app', '00', '11', '00200000'], ['4', 'spiffs', 'Unknown', 'data', '01', '82', '003f0000']]:
+            return True
+        return False
+    
+    def resetLayout(self):
+        try:
+            self.resetESP32ForAResult.deleteLater()
+        except:
+            pass
+
+        try:
+            self.secureBootV2Enabled.deleteLater()
+            self.secureBootV2CheckOK.deleteLater()
+            self.appCompileTime.deleteLater()
+            self.projectName.deleteLater()
+            self.appVersion.deleteLater()
+            self.partTableDesc.deleteLater()
+            self.secureBootV2CheckOKBootloader.deleteLater()
+
+        except:
+            pass
+
+        self.resetESP32ForAResult = QLabel("Click on Reset ESP32 for a result")
+        self.SerialLayout.addWidget(self.resetESP32ForAResult)
+
+    def setInfosText(self, infoArray):
+        """
+        
+            infosAboutTracker["secureBootV2Enabled"] = False
+            infosAboutTracker["secureBootV2CheckOK"] = False
+            infosAboutTracker["appCompileTime"] = None
+            infosAboutTracker["projectName"] = None
+            infosAboutTracker["appVersion"] = None
+            infosAboutTracker["partTableDesc"] = []
+        """
+
+        #self.resetESP32ForAResult.destroy()
+        try:
+            self.resetESP32ForAResult.deleteLater()
+        except:
+            pass
+
+        try:
+            self.secureBootV2Enabled.deleteLater()
+            self.secureBootV2CheckOK.deleteLater()
+            self.appCompileTime.deleteLater()
+            self.projectName.deleteLater()
+            self.appVersion.deleteLater()
+            self.partTableDesc.deleteLater()
+            self.secureBootV2CheckOKBootloader.deleteLater()
+        except:
+            pass
+
+        self.secureBootV2Enabled = QLabel('Secure boot v2 enabled : <font color="blue">%s</font>' % str(infoArray["secureBootV2Enabled"]))
+        self.SerialLayout.addWidget(self.secureBootV2Enabled)
+        self.secureBootV2CheckOKBootloader = QLabel('Secure boot v2 bootloader check : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKBootloader"]))
+        self.SerialLayout.addWidget(self.secureBootV2CheckOKBootloader)
+        self.secureBootV2CheckOK = QLabel('Secure boot v2 firmware check : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKFirmware"]))
+        self.SerialLayout.addWidget(self.secureBootV2CheckOK)
+        self.appCompileTime = QLabel('Firmware compilation time : <font color="blue">%s</font>' % str(infoArray["appCompileTime"]))
+        self.SerialLayout.addWidget(self.appCompileTime)
+        self.projectName = QLabel('Firmware project name : <font color="blue">%s</font>' % str(infoArray["projectName"]))
+        self.SerialLayout.addWidget(self.projectName)
+        self.appVersion = QLabel('Firmware declared version : <font color="blue">%s</font>' % str(infoArray["appVersion"]))
+        self.SerialLayout.addWidget(self.appVersion)
+
+        partTableCheckOk = self.checkPartTableArray(infoArray["partTableDesc"])
+
+        self.partTableDesc = QLabel('PartTable check : <font color="blue">%s</font>' % str(partTableCheckOk))
+        self.SerialLayout.addWidget(self.partTableDesc)
+
 class ManageSerialLayout(QVBoxLayout):
 
     def get_default_connected_device(
@@ -358,7 +448,9 @@ class ManageSerialLayout(QVBoxLayout):
                 if str("Failed to connect to Espressif device: No serial data received.") in str(err):
                     print("no serial data")
                     self.labelTestSerial.setText("ESP not connected (no data)")
-                 
+                if str("Failed to connect to ESP32: Invalid head of packet (0x01): Possible serial noise or corruption.") in str(err):
+                    print("connected but corrupted data")
+                    self.labelTestSerial.setText("ESP not connected (maybe already connected to another software, please kill it)")
 
                 print("%s failed to connect: %s" % (each_port, err))
                 if _esp and _esp._port:
@@ -368,7 +460,7 @@ class ManageSerialLayout(QVBoxLayout):
 
     def is_the_same_block2(self):
         if(not (self.signHashKeyReady == True and self.efuse != None)):
-            return False
+            return 0
 
         print("------")
         print(str(self.efuse[0].blocks[2].bitarray)[2:])
@@ -379,8 +471,11 @@ class ManageSerialLayout(QVBoxLayout):
         print(returnedNewBitString[::-1])
         print("------")
 
+        if (str(str(self.efuse[0].blocks[2].bitarray)[2:]) == "0000000000000000000000000000000000000000000000000000000000000000"):
+            return -1
+
         if (str(str(self.efuse[0].blocks[2].bitarray)[2:]) == str(returnedNewBitString[::-1])):
-            return True
+            return 1
 
     def get_efuses(self, esp, skip_connect=False, debug_mode=True, do_not_confirm=False):
         for name in SUPPORTED_CHIPS:
@@ -396,6 +491,121 @@ class ManageSerialLayout(QVBoxLayout):
 
     def reset_run_esp(self, esp):
         esp.hard_reset()
+
+    def burn_efuse(self, esp, efuses, efuse_name, value, args):
+        def print_attention(blocked_efuses_after_burn):
+            if len(blocked_efuses_after_burn):
+                print(
+                    "    ATTENTION! This BLOCK uses NOT the NONE coding scheme "
+                    "and after 'BURN', these efuses can not be burned in the feature:"
+                )
+                for i in range(0, len(blocked_efuses_after_burn), 5):
+                    print(
+                        "              ",
+                        "".join("{}".format(blocked_efuses_after_burn[i : i + 5 :])),
+                    )
+
+        efuse_name_list = [efuse_name]
+        burn_efuses_list = [efuses[name] for name in efuse_name_list]
+        old_value_list = [efuses[name].get_raw() for name in efuse_name_list]
+        new_value_list = [value]
+
+        attention = ""
+        print("The efuses to burn:")
+        for block in efuses.blocks:
+            burn_list_a_block = [e for e in burn_efuses_list if e.block == block.id]
+            if len(burn_list_a_block):
+                print("  from BLOCK%d" % (block.id))
+                for field in burn_list_a_block:
+                    print("     - %s" % (field.name))
+                    if (
+                        efuses.blocks[field.block].get_coding_scheme()
+                        != efuses.REGS.CODING_SCHEME_NONE
+                    ):
+                        using_the_same_block_names = [
+                            e.name for e in efuses if e.block == field.block
+                        ]
+                        wr_names = [e.name for e in burn_list_a_block]
+                        blocked_efuses_after_burn = [
+                            name
+                            for name in using_the_same_block_names
+                            if name not in wr_names
+                        ]
+                        attention = " (see 'ATTENTION!' above)"
+                if attention:
+                    print_attention(blocked_efuses_after_burn)
+
+        print("\nBurning efuses{}:".format(attention))
+        for efuse, new_value in zip(burn_efuses_list, new_value_list):
+            print(
+                "\n    - '{}' ({}) {} -> {}".format(
+                    efuse.name,
+                    efuse.description,
+                    efuse.get_bitstring(),
+                    efuse.convert_to_bitstring(new_value),
+                )
+            )
+            efuse.save(new_value)
+
+        print()
+        if "ENABLE_SECURITY_DOWNLOAD" in efuse_name_list:
+            print(
+                "ENABLE_SECURITY_DOWNLOAD -> 1: eFuses will not be read back "
+                "for confirmation because this mode disables "
+                "any SRAM and register operations."
+            )
+            print("                               espefuse will not work.")
+            print("                               esptool can read/write only flash.")
+
+        if "DIS_DOWNLOAD_MODE" in efuse_name_list:
+            print(
+                "DIS_DOWNLOAD_MODE -> 1: eFuses will not be read back for "
+                "confirmation because this mode disables any communication with the chip."
+            )
+            print(
+                "                        espefuse/esptool will not work because "
+                "they will not be able to connect to the chip."
+            )
+
+        if (
+            esp.CHIP_NAME == "ESP32"
+            and esp.get_chip_revision() >= 300
+            and "UART_DOWNLOAD_DIS" in efuse_name_list
+        ):
+            print(
+                "UART_DOWNLOAD_DIS -> 1: eFuses will be read for confirmation, "
+                "but after that connection to the chip will become impossible."
+            )
+            print("                        espefuse/esptool will not work.")
+
+        if not efuses.burn_all(check_batch_mode=True):
+            return
+
+        print("Checking efuses...")
+        raise_error = False
+        for efuse, old_value, new_value in zip(
+            burn_efuses_list, old_value_list, new_value_list
+        ):
+            if not efuse.is_readable():
+                print(
+                    "Efuse %s is read-protected. Read back the burn value is not possible."
+                    % efuse.name
+                )
+            else:
+                new_value = efuse.convert_to_bitstring(new_value)
+                burned_value = efuse.get_bitstring()
+                if burned_value != new_value:
+                    print(
+                        burned_value,
+                        "->",
+                        new_value,
+                        "Efuse %s failed to burn. Protected?" % efuse.name,
+                    )
+                    raise_error = True
+        if raise_error:
+            raise esptool.FatalError("The burn was not successful.")
+        else:
+            print("Successful")
 
     def burn_key(self, esp, efuses, blk, key, no_protect_key, args):
         block_name = blk
@@ -452,6 +662,8 @@ class ManageSerialLayout(QVBoxLayout):
         if not efuses.burn_all(check_batch_mode=True):
             return
         print("Successful")
+
+
 
     def flash_id(self, esp):
         """ 
@@ -810,6 +1022,11 @@ class ManageSerialLayout(QVBoxLayout):
         url = base_url + endpoint
         headers={'authorization': 'Bearer ' + self.accessToken, 'torqctrlid': str(self.trackerSelected["torqCtrlId"])}	
         res = requests.get(url, headers = headers, timeout=5, stream=True)
+        print(res)
+        if res.status_code != 200:
+            self.labelDownloadContent.setText(res.reason)
+            return 0
+        
         path = store_path
         with open(path, 'wb') as f:
             total_length = int(res.headers.get('content-length'))
@@ -819,9 +1036,9 @@ class ManageSerialLayout(QVBoxLayout):
             for chunk in res.iter_content(chunk_size=chunk_size): 
                 if chunk:
                     current_chunk=current_chunk+1
-                    #self.downloadProgress.setValue(int((current_chunk/total_chunk)*90+10))
                     f.write(chunk)
                     f.flush()
+        return 200
 
     def download_thread(self):
         print(self.accessToken)
@@ -830,26 +1047,40 @@ class ManageSerialLayout(QVBoxLayout):
         headers={'authorization': 'Bearer ' + self.accessToken, 'torqctrlid': str(self.trackerSelected["torqCtrlId"])}	
         res = requests.get(url, headers = headers, timeout=5)
         res = res.json()
+        print(res)
+        if (res["status"] != 200):
+            self.labelDownloadContent.setText(res["message"])
+            return
+        
         self.signHashKey = (base64.b64decode(res["hashkey_b64"]))
         self.signHashKeyReady = True
         self.activate()
         #self.downloadProgress.setValue(10)
 
-        self.download_and_store('/backend/pythonProgrammer/getBootloader', './bootloader_tmp')
+        st_bootloader = self.download_and_store('/backend/pythonProgrammer/getBootloader', './bootloader_tmp')
+        if not st_bootloader:
+            return
         self.signedBootloaderReady = True
+        self.downloadProgress.setValue(20)
         self.activate()
-        self.download_and_store('/backend/pythonProgrammer/getPartTable', './part_table_tmp')
+        st_parttable = self.download_and_store('/backend/pythonProgrammer/getPartTable', './part_table_tmp')
+        if not st_parttable:
+            return
         self.partTableReady = True
+        self.downloadProgress.setValue(40)
         self.activate()
-        self.download_and_store('/backend/pythonProgrammer/getSignedFirmware', './firmware_tmp')
+        st_signedfirmware = self.download_and_store('/backend/pythonProgrammer/getSignedFirmware', './firmware_tmp')
+        if not st_signedfirmware:
+            return
         self.signedFirmwareReady = True
+        self.downloadProgress.setValue(100)
         self.activate()
-        print(res)
+        self.labelDownloadContent.setText("Content Downloaded !")
 
 
     def click_downloadContent(self):
         print("Download Content")
-        self.labelDownloadContent.setText("Content Downloaded !")
+        
 
         x = threading.Thread(target=self.download_thread)
         x.start()
@@ -878,11 +1109,12 @@ class ManageSerialLayout(QVBoxLayout):
             print(mac)
             self.labelMacAddr.setText("MAC Addr: "+str(mac))
             self.efuse = self.get_efuses(self.esp)
-            if (self.is_the_same_block2()):
+            print(self.efuse)
+            if (self.is_the_same_block2() == 1):
                 self.burnHashKeyStatusLabel.setText("Already Burned (same)")
                 self.alreadyBurnSame = True
                 self.activate()
-            elif (self.signHashKeyReady == True and self.efuse != None):
+            elif (self.is_the_same_block2() == 0):
                 self.burnHashKeyStatusLabel.setText("Already Burned (not the same)")
                 self.compareBurnKeys = True
                 self.activate()
@@ -898,6 +1130,7 @@ class ManageSerialLayout(QVBoxLayout):
             print("burn hash key")
             self.burnHashKeyStatusLabel.setText("Burned !")
 
+            self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
             self.burn_key(self.esp, self.efuse[0], "secure_boot_v2", self.signHashKey, True, None)
 
             for i in range(101):
@@ -928,7 +1161,47 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.bootloaderPartTableFlashStatusLabel.setText("flashed !")
 
+    def click_resetHard(self):
+        print("Reset Hardware")
+        self.reset_run_esp(self.esp)
+        infosAboutTracker = {}
+        infosAboutTracker["secureBootV2Enabled"] = False
+        infosAboutTracker["secureBootV2CheckOKFirmware"] = False
+        infosAboutTracker["secureBootV2CheckOKBootloader"] = True
+        infosAboutTracker["appCompileTime"] = None
+        infosAboutTracker["projectName"] = None
+        infosAboutTracker["appVersion"] = None
+        infosAboutTracker["partTableDesc"] = []
 
+        inPartTableDesc = False
+
+        with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
+            for i in range(50):
+                x = ser.readline().decode()
+                if "secure boot v2 enabled" in x:
+                    infosAboutTracker["secureBootV2Enabled"] = True
+                if "secure boot verification succeeded" in x:
+                    infosAboutTracker["secureBootV2CheckOKFirmware"] = True
+                if "Sig block 0 invalid: Image digest does not match" in x:
+                    infosAboutTracker["secureBootV2CheckOKBootloader"] = False
+                if "Compile time:" in x:
+                    infosAboutTracker["appCompileTime"] = (x.split("Compile time:")[-1].lstrip()).split("\x1b")[0]
+                if "Project name:" in x:
+                    infosAboutTracker["projectName"] = (x.split("Project name:")[-1].lstrip()).split("\x1b")[0]
+                if "App version:" in x:
+                    infosAboutTracker["appVersion"] = (x.split("App version:")[-1].lstrip()).split("\x1b")[0]
+                if "Partition Table:" in x:
+                    inPartTableDesc = True
+                if "End of partition table" in x:
+                    inPartTableDesc = False
+                if inPartTableDesc:
+                    #['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
+                    #
+                    arr = [b for b in x.split(" ") if b is not "" and not "\x1b" in b and not "boot:" in b and not "(" in b]
+                    if arr[0].isnumeric():
+                        infosAboutTracker["partTableDesc"].append(arr)
+
+        self.resultTestLayout.setInfosText(infosAboutTracker)
 
     def click_appFlash(self):
         print("app flash")
@@ -949,15 +1222,6 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.appFlashStatusLabel.setText("App flashed !")
 
-
-    def click_resetHard(self):
-        print("Reset Hardware")
-        #self.reset_run_esp(self.esp)
-        with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
-            for i in range(50):
-                x = ser.readline() 
-                print(x)
-
     def specifySelectedPort(self, selectedSerialPort):
         self.selectedSerialPort = selectedSerialPort
         self.activate()
@@ -976,8 +1240,8 @@ class ManageSerialLayout(QVBoxLayout):
         self.burnHashSignKeyBtn.setEnabled(self.serialConnected and self.signHashKeyReady and isPortSelected and not self.alreadyBurnSame)
         self.appFlashBtn.setEnabled(self.serialConnected and self.signedFirmwareReady and isPortSelected)
         self.bootloaderPartTableFlashBtn.setEnabled(self.serialConnected and self.signedBootloaderReady and self.partTableReady and isPortSelected)
-
         self.resetHardBtn.setEnabled(self.serialConnected and isPortSelected)
+        
         if (self.compareBurnKeys):
             self.burnHashSignKeyBtn.setEnabled(True)
             self.burnHashSignKeyBtn.setText("Compare keys")
@@ -1003,6 +1267,8 @@ class ManageSerialLayout(QVBoxLayout):
         self.serialConnected = False
         self.signedBootloaderReady = False
         self.partTableReady = False
+
+        self.resultTestLayout.resetLayout()
         self.activate()
 
 
@@ -1020,9 +1286,10 @@ class ManageSerialLayout(QVBoxLayout):
         self.activate()
 
 
-    def __init__(self, accessToken):
+    def __init__(self, accessToken, resultTestLayout):
         super(ManageSerialLayout, self).__init__()
         
+        self.resultTestLayout = resultTestLayout
         self.accessToken = accessToken
         self.signedFirmwareReady = False
         self.signHashKeyReady = False
@@ -1162,6 +1429,8 @@ class ManageSerialLayout(QVBoxLayout):
         SerialLayout.addLayout(SerialResetHardLayout)
 
 
+
+
         self.addLayout(SerialLayout)
         self.setSelectedTracker(None)
 
@@ -1196,7 +1465,7 @@ class SerialCP2102Layout(QVBoxLayout):
     def __init__(self, serialLayout):
         super(SerialCP2102Layout, self).__init__()
         self.SerialLayout = serialLayout
-        
+
         serialCP2102Layout = QVBoxLayout()
         self.SelectedSerialPort = None
 
@@ -1246,9 +1515,12 @@ class MainWindow(QDialog):
         frame4.setFrameShape(QFrame.StyledPanel)
         frame4.setLineWidth(3)
 
-        SerialLayout = ManageSerialLayout(self.accessToken)
+        resultTestLayout = ResultTestLayout()
+        SerialLayout = ManageSerialLayout(self.accessToken, resultTestLayout)
+
         serialCP2102Layout = SerialCP2102Layout(SerialLayout)
         TrackerLayout = SelectTrackerLayout(self.accessToken, SerialLayout)
+
 
 
         frame3.setLayout(TrackerLayout)
@@ -1274,9 +1546,9 @@ class MainWindow(QDialog):
 
         outerLayout.addLayout( selectTrackerLayout )
         outerLayout.addWidget(QLabel("=>"))
-
         outerLayout.addLayout( manageSerialLayout )
-
+        outerLayout.addWidget(QLabel("=>"))
+        outerLayout.addLayout( resultTestLayout )
 
         self.setLayout(outerLayout)
 
@@ -1345,6 +1617,14 @@ class ConnectWindow(QDialog):
         # setting lay out
         self.setLayout(self.mainLayout)
 
+
+    def checkUserRightToUsePogrammer(self):
+        url = base_url + '/backend/pythonProgrammer/getTorqeedoControllersList'
+        headers={'authorization': 'Bearer ' + self.accessToken}	
+        res = requests.get(url, headers = headers, timeout=5)
+        return res.json()
+    
+
     def connectToWebsite(self):
         #method to connect to the website
         url = base_url + '/frontend/account/login'
@@ -1363,10 +1643,26 @@ class ConnectWindow(QDialog):
         if(res['status'] == 200):
             self.user = res['user']
             self.accessToken = res['accessToken']
+            print("res")
+
+            print(res)
+
+            resCheck = self.checkUserRightToUsePogrammer()
+            print(resCheck)
+            if resCheck["status"]!=200:
+                if(hasattr(self, 'connexionError')):
+                    self.connexionError.setText(resCheck['message'])
+                else:
+                    self.connexionError = QLabel(resCheck['message'])
+                    self.loginLayout.addRow(self.connexionError)
+                return
+
+
+
             self.mainWindow = MainWindow(self.accessToken)
             self.mainWindow.show()
+
             self.close()
-            print("hhh")
         else:
             if(hasattr(self, 'connexionError')):
                 self.connexionError.setText(res['message'])
