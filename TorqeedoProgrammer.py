@@ -1449,7 +1449,7 @@ class SerialCP2102Layout(QVBoxLayout):
             if (port[1].__contains__("CP2102")):
                 print("a port seems usable for programming : "+ port[0])
                 self.serialPortsComboBox.addItems([port[0]])
-                self.SerialPortsReady.addItems([port[0]])
+                self.SerialPortsReady.append(port[0])
         if (len(myports) == 0):
             print("No port ready for programming, please check port connection")
 
@@ -1458,7 +1458,7 @@ class SerialCP2102Layout(QVBoxLayout):
             self.SelectedSerialPort = None
             print("Selected Serial port : None")
             return
-        self.SelectedSerialPort = self.SerialPortsReady[self.serialPortsComboBox.currentIndex()][0]
+        self.SelectedSerialPort = self.SerialPortsReady[self.serialPortsComboBox.currentIndex()]
         print("debug victor")
         print(self.serialPortsComboBox.currentIndex())
         print(self.SerialPortsReady)
