@@ -1,0 +1,7 @@
+pyserial
+requests
+PyQt5
+cryptography
+ecdsa
+bitstring
+reedsolo
