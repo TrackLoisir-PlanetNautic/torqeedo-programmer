@@ -1443,22 +1443,22 @@ class SerialCP2102Layout(QVBoxLayout):
     def click_refreshSerialList(self):
         print("refresh serial ports")
         self.serialPortsComboBox.clear()
-        self.serialPortsComboBox.addItems(["Select"])
+        self.SerialPortsReady = []
         myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
         for port in myports:
             if (port[1].__contains__("CP2102")):
                 print("a port seems usable for programming : "+ port[0])
                 self.serialPortsComboBox.addItems([port[0]])
-        self.SerialPortsReady = myports
+                self.SerialPortsReady.addItems([port[0]])
         if (len(myports) == 0):
             print("No port ready for programming, please check port connection")
 
     def click_connectProgrammer(self):
-        if (self.serialPortsComboBox.currentIndex()<=0):
+        if (self.serialPortsComboBox.currentIndex()<0):
             self.SelectedSerialPort = None
             print("Selected Serial port : None")
             return
-        self.SelectedSerialPort = self.SerialPortsReady[self.serialPortsComboBox.currentIndex()-1][0]
+        self.SelectedSerialPort = self.SerialPortsReady[self.serialPortsComboBox.currentIndex()][0]
         print("debug victor")
         print(self.serialPortsComboBox.currentIndex())
         print(self.SerialPortsReady)
