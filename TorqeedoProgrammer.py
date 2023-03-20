@@ -338,7 +338,7 @@ class ResultTestLayout(QVBoxLayout):
 
         self.addLayout(self.SerialLayout)
 
-        self.resetESP32ForAResult = QLabel("Click on Reset ESP32 for a result")
+        self.resetESP32ForAResult = QLabel("Click on Restart ESP32 for a result")
         self.SerialLayout.addWidget(self.resetESP32ForAResult)
 
 
@@ -354,12 +354,18 @@ class ResultTestLayout(QVBoxLayout):
             pass
 
         try:
+            self.esp32CommError.deleteLater()
+        except:
+            pass
+
+        try:
             self.secureBootV2Enabled.deleteLater()
             self.secureBootV2CheckOK.deleteLater()
             self.appCompileTime.deleteLater()
             self.projectName.deleteLater()
             self.appVersion.deleteLater()
             self.partTableDesc.deleteLater()
+            self.secureBootV2EnabledBootloaderStage2.deleteLater()
             self.secureBootV2CheckOKBootloader.deleteLater()
 
         except:
@@ -371,12 +377,14 @@ class ResultTestLayout(QVBoxLayout):
     def setInfosText(self, infoArray):
         """
         
-            infosAboutTracker["secureBootV2Enabled"] = False
-            infosAboutTracker["secureBootV2CheckOK"] = False
-            infosAboutTracker["appCompileTime"] = None
-            infosAboutTracker["projectName"] = None
-            infosAboutTracker["appVersion"] = None
-            infosAboutTracker["partTableDesc"] = []
+        infosAboutTracker["secureBootV2EnabledBootloader"] = False
+        infosAboutTracker["secureBootV2CheckOKFirmware"] = False
+        infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = False
+        infosAboutTracker["secureBootV2CheckOKBootloader"] = False
+        infosAboutTracker["appCompileTime"] = None
+        infosAboutTracker["projectName"] = None
+        infosAboutTracker["appVersion"] = None
+        infosAboutTracker["partTableDesc"] = []
         """
 
         #self.resetESP32ForAResult.destroy()
@@ -386,21 +394,36 @@ class ResultTestLayout(QVBoxLayout):
             pass
 
         try:
-            self.secureBootV2Enabled.deleteLater()
+            self.esp32CommError.deleteLater()
+        except:
+            pass
+
+
+
+        try:
+            self.secureBootV2EnabledBootloader.deleteLater()
             self.secureBootV2CheckOK.deleteLater()
             self.appCompileTime.deleteLater()
             self.projectName.deleteLater()
             self.appVersion.deleteLater()
             self.partTableDesc.deleteLater()
             self.secureBootV2CheckOKBootloader.deleteLater()
+            self.secureBootV2EnabledBootloaderStage2.deleteLater()
         except:
             pass
 
-        self.secureBootV2Enabled = QLabel('Secure boot v2 enabled : <font color="blue">%s</font>' % str(infoArray["secureBootV2Enabled"]))
-        self.SerialLayout.addWidget(self.secureBootV2Enabled)
-        self.secureBootV2CheckOKBootloader = QLabel('Secure boot v2 bootloader check : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKBootloader"]))
+        if "error" in infoArray:
+            self.secureBootV2Enabled = QLabel(infoArray["error"])
+            self.SerialLayout.addWidget(self.secureBootV2Enabled)
+            return
+
+        self.secureBootV2EnabledBootloader = QLabel('Secure boot v2 enabled in first bootloader: <font color="blue">%s</font>' % str(infoArray["secureBootV2EnabledBootloader"]))
+        self.SerialLayout.addWidget(self.secureBootV2EnabledBootloader)
+        self.secureBootV2CheckOKBootloader = QLabel('Signed second bootloader check ok : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKBootloader"]))
         self.SerialLayout.addWidget(self.secureBootV2CheckOKBootloader)
-        self.secureBootV2CheckOK = QLabel('Secure boot v2 firmware check : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKFirmware"]))
+        self.secureBootV2EnabledBootloaderStage2 = QLabel('Secure boot v2 enabled in second bootloader : <font color="blue">%s</font>' % str(infoArray["secureBootV2EnabledBootloaderStage2"]))
+        self.SerialLayout.addWidget(self.secureBootV2EnabledBootloaderStage2)
+        self.secureBootV2CheckOK = QLabel('Signed firmware check ok : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKFirmware"]))
         self.SerialLayout.addWidget(self.secureBootV2CheckOK)
         self.appCompileTime = QLabel('Firmware compilation time : <font color="blue">%s</font>' % str(infoArray["appCompileTime"]))
         self.SerialLayout.addWidget(self.appCompileTime)
@@ -460,7 +483,7 @@ class ManageSerialLayout(QVBoxLayout):
 
     def is_the_same_block2(self):
         if(not (self.signHashKeyReady == True and self.efuse != None)):
-            return 0
+            return -2
 
         print("------")
         print(str(self.efuse[0].blocks[2].bitarray)[2:])
@@ -476,6 +499,7 @@ class ManageSerialLayout(QVBoxLayout):
 
         if (str(str(self.efuse[0].blocks[2].bitarray)[2:]) == str(returnedNewBitString[::-1])):
             return 1
+        return 0
 
     def get_efuses(self, esp, skip_connect=False, debug_mode=True, do_not_confirm=False):
         for name in SUPPORTED_CHIPS:
@@ -490,7 +514,11 @@ class ManageSerialLayout(QVBoxLayout):
             raise esptool.FatalError("get_efuses: Unsupported chip (%s)" % esp.CHIP_NAME)
 
     def reset_run_esp(self, esp):
-        esp.hard_reset()
+        try:
+            esp.hard_reset()
+        except:
+            print("esp object does not exist ! Please reconnect (TODO: recover automatically)")
+            sys.exit(1) #todo recover automatically
 
     def burn_efuse(self, esp, efuses, efuse_name, value, args):
         def print_attention(blocked_efuses_after_burn):
@@ -1118,6 +1146,8 @@ class ManageSerialLayout(QVBoxLayout):
                 self.burnHashKeyStatusLabel.setText("Already Burned (not the same)")
                 self.compareBurnKeys = True
                 self.activate()
+            elif (self.is_the_same_block2() == -2):
+                self.burnHashKeyStatusLabel.setText("Error, try download content button")
             else:
                 self.burnHashKeyStatusLabel.setText("Not burned")
 
@@ -1156,8 +1186,9 @@ class ManageSerialLayout(QVBoxLayout):
         
         if (not self.esp.IS_STUB):
             self.esp = self.esp.run_stub()
-
         self.write_flash(self.esp, args, self.bootloaderPartTableFlashProgress)
+
+
 
         self.bootloaderPartTableFlashStatusLabel.setText("flashed !")
 
@@ -1165,9 +1196,10 @@ class ManageSerialLayout(QVBoxLayout):
         print("Reset Hardware")
         self.reset_run_esp(self.esp)
         infosAboutTracker = {}
-        infosAboutTracker["secureBootV2Enabled"] = False
+        infosAboutTracker["secureBootV2EnabledBootloader"] = False
         infosAboutTracker["secureBootV2CheckOKFirmware"] = False
-        infosAboutTracker["secureBootV2CheckOKBootloader"] = True
+        infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = False
+        infosAboutTracker["secureBootV2CheckOKBootloader"] = False
         infosAboutTracker["appCompileTime"] = None
         infosAboutTracker["projectName"] = None
         infosAboutTracker["appVersion"] = None
@@ -1177,30 +1209,38 @@ class ManageSerialLayout(QVBoxLayout):
 
         with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
             for i in range(50):
-                x = ser.readline().decode()
-                if "secure boot v2 enabled" in x:
-                    infosAboutTracker["secureBootV2Enabled"] = True
-                if "secure boot verification succeeded" in x:
-                    infosAboutTracker["secureBootV2CheckOKFirmware"] = True
-                if "Sig block 0 invalid: Image digest does not match" in x:
-                    infosAboutTracker["secureBootV2CheckOKBootloader"] = False
-                if "Compile time:" in x:
-                    infosAboutTracker["appCompileTime"] = (x.split("Compile time:")[-1].lstrip()).split("\x1b")[0]
-                if "Project name:" in x:
-                    infosAboutTracker["projectName"] = (x.split("Project name:")[-1].lstrip()).split("\x1b")[0]
-                if "App version:" in x:
-                    infosAboutTracker["appVersion"] = (x.split("App version:")[-1].lstrip()).split("\x1b")[0]
-                if "Partition Table:" in x:
-                    inPartTableDesc = True
-                if "End of partition table" in x:
-                    inPartTableDesc = False
-                if inPartTableDesc:
-                    #['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
-                    #
-                    arr = [b for b in x.split(" ") if b is not "" and not "\x1b" in b and not "boot:" in b and not "(" in b]
-                    if arr[0].isnumeric():
-                        infosAboutTracker["partTableDesc"].append(arr)
-
+                try:
+                    x = ser.readline().decode()
+                    if "secure boot v2 enabled" in x:
+                        infosAboutTracker["secureBootV2EnabledBootloader"] = True
+                    if "secure boot verification succeeded" in x:
+                        infosAboutTracker[""] = True
+                    if "secure boot verification succeeded" in x:
+                        infosAboutTracker["secureBootV2CheckOKBootloader"] = True
+                    if "Compile time:" in x:
+                        infosAboutTracker["appCompileTime"] = (x.split("Compile time:")[-1].lstrip()).split("\x1b")[0]
+                    if "Project name:" in x:
+                        infosAboutTracker["projectName"] = (x.split("Project name:")[-1].lstrip()).split("\x1b")[0]
+                    if "App version:" in x:
+                        infosAboutTracker["appVersion"] = (x.split("App version:")[-1].lstrip()).split("\x1b")[0]
+                    if "secure_boot_v2: Verifying with RSA-PSS" in x:
+                        infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = True
+                    if "secure_boot_v2: Signature verified successfully!" in x:
+                        infosAboutTracker["secureBootV2CheckOKFirmware"] = True
+                    if "Partition Table:" in x:
+                        inPartTableDesc = True
+                    if "End of partition table" in x:
+                        inPartTableDesc = False
+                    if inPartTableDesc:
+                        #['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
+                        #
+                        arr = [b for b in x.split(" ") if b != "" and not "\x1b" in b and not "boot:" in b and not "(" in b]
+                        if arr[0].isnumeric():
+                            infosAboutTracker["partTableDesc"].append(arr)
+                except:
+                    infosAboutTracker["error"] = "Can't read serial port (maybe already open by another software ?)"
+                    self.resultTestLayout.setInfosText(infosAboutTracker)
+                    print("Can't read serial port (maybe already open by another software ?)")
         self.resultTestLayout.setInfosText(infosAboutTracker)
 
     def click_appFlash(self):
@@ -1421,7 +1461,7 @@ class ManageSerialLayout(QVBoxLayout):
         SerialResetHardLayout = QHBoxLayout()
 
         self.resetHardBtn = QPushButton()
-        self.resetHardBtn.setText("Reset ESP32")
+        self.resetHardBtn.setText("Restart ESP32 and obtain boot info")
         #testSerialBtn.move(64,32)
         self.resetHardBtn.clicked.connect(self.click_resetHard)
 
