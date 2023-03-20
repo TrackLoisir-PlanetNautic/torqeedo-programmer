@@ -1459,6 +1459,10 @@ class SerialCP2102Layout(QVBoxLayout):
             print("Selected Serial port : None")
             return
         self.SelectedSerialPort = self.SerialPortsReady[self.serialPortsComboBox.currentIndex()-1][0]
+        print("debug victor")
+        print(self.serialPortsComboBox.currentIndex())
+        print(self.SerialPortsReady)
+
         print("Selected Serial port : "+str(self.SelectedSerialPort))
         self.SerialLayout.specifySelectedPort(self.SelectedSerialPort)
 
