@@ -375,17 +375,13 @@ class ResultTestLayout(QVBoxLayout):
         self.SerialLayout.addWidget(self.resetESP32ForAResult)
 
     def setInfosText(self, infoArray):
+        print(infoArray)
         """
+        infosAboutTracker["DEBUG"] = []
         
-        infosAboutTracker["secureBootV2EnabledBootloader"] = False
-        infosAboutTracker["secureBootV2CheckOKFirmware"] = False
-        infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = False
-        infosAboutTracker["secureBootV2CheckOKBootloader"] = False
-        infosAboutTracker["appCompileTime"] = None
-        infosAboutTracker["projectName"] = None
-        infosAboutTracker["appVersion"] = None
-        infosAboutTracker["partTableDesc"] = []
         """
+
+
 
         #self.resetESP32ForAResult.destroy()
         try:
@@ -403,12 +399,17 @@ class ResultTestLayout(QVBoxLayout):
         try:
             self.secureBootV2EnabledBootloader.deleteLater()
             self.secureBootV2CheckOK.deleteLater()
-            self.appCompileTime.deleteLater()
             self.projectName.deleteLater()
-            self.appVersion.deleteLater()
             self.partTableDesc.deleteLater()
             self.secureBootV2CheckOKBootloader.deleteLater()
             self.secureBootV2EnabledBootloaderStage2.deleteLater()
+            self.aes128Key.deleteLater()
+            self.versionNumber.deleteLater()
+            self.trackerGpsId.deleteLater()
+            self.wifiBackupSsid.deleteLater()
+            self.mode.deleteLater()
+            self.debug.deleteLater()
+            self.realCompilationTime.deleteLater()
         except:
             pass
 
@@ -425,12 +426,34 @@ class ResultTestLayout(QVBoxLayout):
         self.SerialLayout.addWidget(self.secureBootV2EnabledBootloaderStage2)
         self.secureBootV2CheckOK = QLabel('Signed firmware check ok : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKFirmware"]))
         self.SerialLayout.addWidget(self.secureBootV2CheckOK)
-        self.appCompileTime = QLabel('Firmware compilation time : <font color="blue">%s</font>' % str(infoArray["appCompileTime"]))
-        self.SerialLayout.addWidget(self.appCompileTime)
+
         self.projectName = QLabel('Firmware project name : <font color="blue">%s</font>' % str(infoArray["projectName"]))
         self.SerialLayout.addWidget(self.projectName)
-        self.appVersion = QLabel('Firmware declared version : <font color="blue">%s</font>' % str(infoArray["appVersion"]))
-        self.SerialLayout.addWidget(self.appVersion)
+        self.aes128Key = QLabel('4 first char of aes key: <font color="blue">%s</font>' % str(infoArray["AES128_KEY"]))
+        self.SerialLayout.addWidget(self.aes128Key)
+        self.versionNumber = QLabel('Firmware Version Number: <font color="blue">%s</font>' % str(infoArray["VERSION_NUMBER"]))
+        self.SerialLayout.addWidget(self.versionNumber)
+        self.trackerGpsId = QLabel('Tracker kingwo id: <font color="blue">%s</font>' % str(infoArray["TRACKER_GPS_ID"]))
+        self.SerialLayout.addWidget(self.trackerGpsId)
+        self.wifiBackupSsid = QLabel('Wifi backup SSID: <font color="blue">%s</font>' % str(infoArray["WIFI_BACKUP_SSID"]))
+        self.SerialLayout.addWidget(self.wifiBackupSsid)
+        self.mode = QLabel('MODE: <font color="blue">%s</font>' % str(infoArray["MODE"]))
+        self.SerialLayout.addWidget(self.mode)
+        self.realCompilationTime = QLabel('Compilation time: <font color="blue">%s</font>' % str(infoArray["REAL_COMPILATION_TIME"]))
+        self.SerialLayout.addWidget(self.realCompilationTime)
+
+        
+
+        if len(infoArray["DEBUG"]) == 0:
+            debugsList = "No debug"
+        else:
+            debugsList = ""
+            for deb in infoArray["DEBUG"]:
+                debugsList = debugsList + deb + " "
+
+
+        self.realCompilationTime = QLabel('Debug activés : <font color="blue">%s</font>' % str(debugsList))
+        self.SerialLayout.addWidget(self.realCompilationTime)
 
         partTableCheckOk = self.checkPartTableArray(infoArray["partTableDesc"])
 
@@ -1204,13 +1227,38 @@ class ManageSerialLayout(QVBoxLayout):
         infosAboutTracker["projectName"] = None
         infosAboutTracker["appVersion"] = None
         infosAboutTracker["partTableDesc"] = []
+        infosAboutTracker["AES128_KEY"] = None
+        infosAboutTracker["VERSION_NUMBER"] = None
+        infosAboutTracker["TRACKER_GPS_ID"] = None
+        infosAboutTracker["WIFI_BACKUP_SSID"] = None
+        infosAboutTracker["DEBUG"] = []
+        infosAboutTracker["MODE"] = None
+        infosAboutTracker["REAL_COMPILATION_TIME"] = None
 
         inPartTableDesc = False
 
         with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
-            for i in range(50):
+            for i in range(73):
                 try:
                     x = ser.readline().decode()
+                    print(x)
+                    if "VERSION_NUMBER" in x:
+                        print("VERSION NUMBER")
+                        print(x)
+
+                        infosAboutTracker["VERSION_NUMBER"] = (x.split("VERSION_NUMBER :")[-1].lstrip()).split("\x1b")[0]
+                    if "AES128_KEY" in x:
+                        infosAboutTracker["AES128_KEY"] = (x.split("AES128_KEY :")[-1].lstrip()).split("\x1b")[0]
+                    if "DEBUG :" in x:
+                        infosAboutTracker["DEBUG"].append((x.split("DEBUG :")[-1].lstrip()).split("\x1b")[0])
+                    if "REAL_COMPILATION_TIME" in x:
+                        infosAboutTracker["REAL_COMPILATION_TIME"] = (x.split("REAL_COMPILATION_TIME :")[-1].lstrip()).split("\x1b")[0]
+                    if "WIFI_BACKUP_SSID" in x:
+                        infosAboutTracker["WIFI_BACKUP_SSID"] = (x.split("WIFI_BACKUP_SSID :")[-1].lstrip()).split("\x1b")[0]
+                    if "TRACKER_GPS_ID" in x:
+                        infosAboutTracker["TRACKER_GPS_ID"] = (x.split("TRACKER_GPS_ID :")[-1].lstrip()).split("\x1b")[0]
+                    if "MODE" in x:
+                        infosAboutTracker["MODE"] = (x.split("MODE :")[-1].lstrip()).split("\x1b")[0]
                     if "secure boot v2 enabled" in x:
                         infosAboutTracker["secureBootV2EnabledBootloader"] = True
                     if "secure boot verification succeeded" in x:
