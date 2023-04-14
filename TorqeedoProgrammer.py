@@ -1,7 +1,7 @@
 # importing libraries
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QPalette, QColor
-from PyQt5 import QtGui
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import QPalette, QColor
+from PyQt6 import QtGui
 import sys
 import requests
 import json
@@ -1672,7 +1672,7 @@ class ConnectWindow(QDialog):
 
         # creating a line edit for password connexion
         self.passwordLineEdit = QLineEdit()
-        self.passwordLineEdit.setEchoMode(QLineEdit.Password)
+        self.passwordLineEdit.setEchoMode(QLineEdit.EchoMode.Password)
         #self.passwordLineEdit.setFixedSize(350,40)
 
         # creating a form layout
@@ -1689,7 +1689,7 @@ class ConnectWindow(QDialog):
         self.connexionGroupBox.setLayout(self.loginLayout)
 
         # creating a dialog button for ok and cancel
-        self.connexionButtonBox = QDialogButtonBox(QDialogButtonBox.Ok)
+        self.connexionButtonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
 
         # adding action when form is accepted
         self.connexionButtonBox.accepted.connect(self.connectToWebsite)
