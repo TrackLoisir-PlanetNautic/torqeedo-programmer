@@ -1600,11 +1600,11 @@ class MainWindow(QDialog):
 
 
         frame3 = QFrame()
-        frame3.setFrameShape(QFrame.StyledPanel)
+        frame3.setFrameShape(QFrame.Shape.StyledPanel)
         frame3.setLineWidth(3)
 
         frame4 = QFrame()
-        frame4.setFrameShape(QFrame.StyledPanel)
+        frame4.setFrameShape(QFrame.Shape.StyledPanel)
         frame4.setLineWidth(3)
 
         resultTestLayout = ResultTestLayout()
@@ -1626,7 +1626,7 @@ class MainWindow(QDialog):
 
 
         frame = QFrame()
-        frame.setFrameShape(QFrame.StyledPanel)
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
         frame.setLineWidth(3)
         
         
@@ -1667,7 +1667,7 @@ class ConnectWindow(QDialog):
 
         # creating a line edit for email connexion
         self.emailLineEdit = QLineEdit()
-        self.emailLineEdit.setText("thomas.trackloisir@gmail.com") 
+        self.emailLineEdit.setText("victor.chevillotte@gmail.com") 
         #self.emailLineEdit.setFixedSize(350,40)
 
         # creating a line edit for password connexion
