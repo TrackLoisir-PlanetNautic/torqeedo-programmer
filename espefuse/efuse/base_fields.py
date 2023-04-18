@@ -499,7 +499,7 @@ class EspEfusesBase(object):
         if not have_wr_data_for_burn:
             print("Nothing to burn, see messages above.")
             return
-        EspEfusesBase.confirm("", self.do_not_confirm)
+        #EspEfusesBase.confirm("", self.do_not_confirm)
 
         # Burn from BLKn -> BLK0. Because BLK0 can set rd or/and wr protection bits.
         for block in reversed(self.blocks):
