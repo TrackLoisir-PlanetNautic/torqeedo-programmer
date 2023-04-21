@@ -537,11 +537,7 @@ class ManageSerialLayout(QVBoxLayout):
             raise esptool.FatalError("get_efuses: Unsupported chip (%s)" % esp.CHIP_NAME)
 
     def reset_run_esp(self, esp):
-        try:
-            esp.hard_reset()
-        except:
-            print("esp object does not exist ! Please reconnect (TODO: recover automatically)")
-            sys.exit(1) #todo recover automatically
+        esp.hard_reset()
 
     def burn_efuse(self, esp, efuses, efuse_name, value, args):
         def print_attention(blocked_efuses_after_burn):
@@ -1096,37 +1092,51 @@ class ManageSerialLayout(QVBoxLayout):
         #self.downloadProgress.setValue(0)
         url = base_url + '/backend/pythonProgrammer/getHashSigningKey'
         headers={'authorization': 'Bearer ' + self.accessToken, 'torqctrlid': str(self.trackerSelected["torqCtrlId"])}	
-        res = requests.get(url, headers = headers, timeout=5)
-        res = res.json()
-        print(res)
-        if (res["status"] != 200):
-            self.labelDownloadContent.setText(res["message"])
-            return
-        
-        self.signHashKey = (base64.b64decode(res["hashkey_b64"]))
-        self.signHashKeyReady = True
-        self.activate()
-        #self.downloadProgress.setValue(10)
 
-        st_bootloader = self.download_and_store('/backend/pythonProgrammer/getBootloader', './bootloader_tmp')
-        if not st_bootloader:
-            return
-        self.signedBootloaderReady = True
-        self.downloadProgress.setValue(20)
+        self.downloadProgress.setValue(0)
+        self.labelDownloadContent.setText("In progress ..")
+
+        self.notCurrentlyInDownload = False
         self.activate()
-        st_parttable = self.download_and_store('/backend/pythonProgrammer/getPartTable', './part_table_tmp')
-        if not st_parttable:
-            return
-        self.partTableReady = True
-        self.downloadProgress.setValue(40)
+
+        try:
+            res = requests.get(url, headers = headers, timeout=5)
+            res = res.json()
+            print(res)
+            if (res["status"] != 200):
+                self.labelDownloadContent.setText(res["message"])
+                return
+            
+            self.signHashKey = (base64.b64decode(res["hashkey_b64"]))
+            self.signHashKeyReady = True
+            self.activate()
+            #self.downloadProgress.setValue(10)
+
+            st_bootloader = self.download_and_store('/backend/pythonProgrammer/getBootloader', './bootloader_tmp')
+            if not st_bootloader:
+                return
+            self.signedBootloaderReady = True
+            self.downloadProgress.setValue(20)
+            self.activate()
+            st_parttable = self.download_and_store('/backend/pythonProgrammer/getPartTable', './part_table_tmp')
+            if not st_parttable:
+                return
+            self.partTableReady = True
+            self.downloadProgress.setValue(40)
+            self.activate()
+            st_signedfirmware = self.download_and_store('/backend/pythonProgrammer/getSignedFirmware', './firmware_tmp')
+            if not st_signedfirmware:
+                return
+            self.signedFirmwareReady = True
+            self.downloadProgress.setValue(100)
+            self.labelDownloadContent.setText("Content Downloaded !")
+
+        except:
+            self.signedFirmwareReady = False
+            self.labelDownloadContent.setText("Download failed !")
+
+        self.notCurrentlyInDownload = True
         self.activate()
-        st_signedfirmware = self.download_and_store('/backend/pythonProgrammer/getSignedFirmware', './firmware_tmp')
-        if not st_signedfirmware:
-            return
-        self.signedFirmwareReady = True
-        self.downloadProgress.setValue(100)
-        self.activate()
-        self.labelDownloadContent.setText("Content Downloaded !")
 
 
     def click_downloadContent(self):
@@ -1147,7 +1157,7 @@ class ManageSerialLayout(QVBoxLayout):
             [self.selectedSerialPort],
             port=self.selectedSerialPort,
             connect_attempts=1,
-            initial_baud=115200,
+            initial_baud=460800,
             chip="esp32",
             trace=False,
             before="default_reset",
@@ -1180,15 +1190,16 @@ class ManageSerialLayout(QVBoxLayout):
 
     def click_burnSignHashKey(self):
         if (not self.compareBurnKeys):
-            print("burn hash key")
-            self.burnHashKeyStatusLabel.setText("Burned !")
-
-            self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
-            self.burn_key(self.esp, self.efuse[0], "secure_boot_v2", self.signHashKey, True, None)
-
-            for i in range(101):
-                time.sleep(0.01)
-                self.burnProgress.setValue(i)
+            try:
+                print("burn hash key")
+                self.burnProgress.setValue(0)
+                self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
+                self.burnProgress.setValue(50)
+                self.burn_key(self.esp, self.efuse[0], "secure_boot_v2", self.signHashKey, True, None)
+                self.burnProgress.setValue(100)
+                self.burnHashKeyStatusLabel.setText("Burned !")
+            except:
+                print("ERROR : can't burn now !")
         else:
             print("compare keys")
 
@@ -1201,7 +1212,7 @@ class ManageSerialLayout(QVBoxLayout):
         self.bootloaderPartTableFlashStatusLabel.setText("Flashing in progress")
 
 
-        #Namespace(chip='auto', port=None, baud=115200, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
+        #Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
         #flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
         args = {'chip':'esp32', 'compress':None, 'flash_mode':'dio', 'flash_freq':'80m', 'no_compress':False, 'force':True, 'addr_filename':[(94208, part_table),(4096, bootloader)], 'encrypt':None, 'encrypt_files':None, 'ignore_flash_encryption_efuse_setting':None, 'flash_size':'4MB', 'erase_all':False, 'no_stub':False, 'verify':None}
         args = Dict2Class(args)
@@ -1216,106 +1227,116 @@ class ManageSerialLayout(QVBoxLayout):
         self.bootloaderPartTableFlashStatusLabel.setText("flashed !")
 
     def click_resetHard(self):
-        print("Reset Hardware")
-        self.reset_run_esp(self.esp)
-        infosAboutTracker = {}
-        infosAboutTracker["secureBootV2EnabledBootloader"] = False
-        infosAboutTracker["secureBootV2CheckOKFirmware"] = False
-        infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = False
-        infosAboutTracker["secureBootV2CheckOKBootloader"] = False
-        infosAboutTracker["appCompileTime"] = None
-        infosAboutTracker["projectName"] = None
-        infosAboutTracker["appVersion"] = None
-        infosAboutTracker["partTableDesc"] = []
-        infosAboutTracker["AES128_KEY"] = None
-        infosAboutTracker["VERSION_NUMBER"] = None
-        infosAboutTracker["TRACKER_GPS_ID"] = None
-        infosAboutTracker["WIFI_BACKUP_SSID"] = None
-        infosAboutTracker["DEBUG"] = []
-        infosAboutTracker["MODE"] = None
-        infosAboutTracker["REAL_COMPILATION_TIME"] = None
+        try:
+            print("Reset Hardware")
+            self.reset_run_esp(self.esp)
+            infosAboutTracker = {}
+            infosAboutTracker["secureBootV2EnabledBootloader"] = False
+            infosAboutTracker["secureBootV2CheckOKFirmware"] = False
+            infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = False
+            infosAboutTracker["secureBootV2CheckOKBootloader"] = False
+            infosAboutTracker["appCompileTime"] = None
+            infosAboutTracker["projectName"] = None
+            infosAboutTracker["appVersion"] = None
+            infosAboutTracker["partTableDesc"] = []
+            infosAboutTracker["AES128_KEY"] = None
+            infosAboutTracker["VERSION_NUMBER"] = None
+            infosAboutTracker["TRACKER_GPS_ID"] = None
+            infosAboutTracker["WIFI_BACKUP_SSID"] = None
+            infosAboutTracker["DEBUG"] = []
+            infosAboutTracker["MODE"] = None
+            infosAboutTracker["REAL_COMPILATION_TIME"] = None
 
-        inPartTableDesc = False
+            inPartTableDesc = False
 
-        with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
-            for i in range(73):
-                try:
-                    x = ser.readline().decode()
-                    print(x)
-                    if "VERSION_NUMBER" in x:
-                        print("VERSION NUMBER")
+            with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
+                for i in range(73):
+                    try:
+                        x = ser.readline().decode()
                         print(x)
+                        if "VERSION_NUMBER" in x:
+                            print("VERSION NUMBER")
+                            print(x)
 
-                        infosAboutTracker["VERSION_NUMBER"] = (x.split("VERSION_NUMBER :")[-1].lstrip()).split("\x1b")[0]
-                    if "AES128_KEY" in x:
-                        infosAboutTracker["AES128_KEY"] = (x.split("AES128_KEY :")[-1].lstrip()).split("\x1b")[0]
-                    if "DEBUG :" in x:
-                        infosAboutTracker["DEBUG"].append((x.split("DEBUG :")[-1].lstrip()).split("\x1b")[0])
-                    if "REAL_COMPILATION_TIME" in x:
-                        infosAboutTracker["REAL_COMPILATION_TIME"] = (x.split("REAL_COMPILATION_TIME :")[-1].lstrip()).split("\x1b")[0]
-                    if "WIFI_BACKUP_SSID" in x:
-                        infosAboutTracker["WIFI_BACKUP_SSID"] = (x.split("WIFI_BACKUP_SSID :")[-1].lstrip()).split("\x1b")[0]
-                    if "TRACKER_GPS_ID" in x:
-                        infosAboutTracker["TRACKER_GPS_ID"] = (x.split("TRACKER_GPS_ID :")[-1].lstrip()).split("\x1b")[0]
-                    if "MODE" in x:
-                        infosAboutTracker["MODE"] = (x.split("MODE :")[-1].lstrip()).split("\x1b")[0]
-                    if "secure boot v2 enabled" in x:
-                        infosAboutTracker["secureBootV2EnabledBootloader"] = True
-                    if "secure boot verification succeeded" in x:
-                        infosAboutTracker[""] = True
-                    if "secure boot verification succeeded" in x:
-                        infosAboutTracker["secureBootV2CheckOKBootloader"] = True
-                    if "Compile time:" in x:
-                        infosAboutTracker["appCompileTime"] = (x.split("Compile time:")[-1].lstrip()).split("\x1b")[0]
-                    if "Project name:" in x:
-                        infosAboutTracker["projectName"] = (x.split("Project name:")[-1].lstrip()).split("\x1b")[0]
-                    if "App version:" in x:
-                        infosAboutTracker["appVersion"] = (x.split("App version:")[-1].lstrip()).split("\x1b")[0]
-                    if "secure_boot_v2: Verifying with RSA-PSS" in x:
-                        infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = True
-                    if "secure_boot_v2: Signature verified successfully!" in x:
-                        infosAboutTracker["secureBootV2CheckOKFirmware"] = True
-                    if "Partition Table:" in x:
-                        inPartTableDesc = True
-                    if "End of partition table" in x:
-                        inPartTableDesc = False
-                    if inPartTableDesc:
-                        #['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
-                        #
-                        arr = [b for b in x.split(" ") if b != "" and not "\x1b" in b and not "boot:" in b and not "(" in b]
-                        if arr[0].isnumeric():
-                            infosAboutTracker["partTableDesc"].append(arr)
-                except:
-                    infosAboutTracker["error"] = "Can't read serial port (maybe already open by another software ?)"
-                    self.resultTestLayout.setInfosText(infosAboutTracker)
-                    print("Can't read serial port (maybe already open by another software ?)")
-        self.resultTestLayout.setInfosText(infosAboutTracker)
+                            infosAboutTracker["VERSION_NUMBER"] = (x.split("VERSION_NUMBER :")[-1].lstrip()).split("\x1b")[0]
+                        if "AES128_KEY" in x:
+                            infosAboutTracker["AES128_KEY"] = (x.split("AES128_KEY :")[-1].lstrip()).split("\x1b")[0]
+                        if "DEBUG :" in x:
+                            infosAboutTracker["DEBUG"].append((x.split("DEBUG :")[-1].lstrip()).split("\x1b")[0])
+                        if "REAL_COMPILATION_TIME" in x:
+                            infosAboutTracker["REAL_COMPILATION_TIME"] = (x.split("REAL_COMPILATION_TIME :")[-1].lstrip()).split("\x1b")[0]
+                        if "WIFI_BACKUP_SSID" in x:
+                            infosAboutTracker["WIFI_BACKUP_SSID"] = (x.split("WIFI_BACKUP_SSID :")[-1].lstrip()).split("\x1b")[0]
+                        if "TRACKER_GPS_ID" in x:
+                            infosAboutTracker["TRACKER_GPS_ID"] = (x.split("TRACKER_GPS_ID :")[-1].lstrip()).split("\x1b")[0]
+                        if "MODE" in x:
+                            infosAboutTracker["MODE"] = (x.split("MODE :")[-1].lstrip()).split("\x1b")[0]
+                        if "secure boot v2 enabled" in x:
+                            infosAboutTracker["secureBootV2EnabledBootloader"] = True
+                        if "secure boot verification succeeded" in x:
+                            infosAboutTracker[""] = True
+                        if "secure boot verification succeeded" in x:
+                            infosAboutTracker["secureBootV2CheckOKBootloader"] = True
+                        if "Compile time:" in x:
+                            infosAboutTracker["appCompileTime"] = (x.split("Compile time:")[-1].lstrip()).split("\x1b")[0]
+                        if "Project name:" in x:
+                            infosAboutTracker["projectName"] = (x.split("Project name:")[-1].lstrip()).split("\x1b")[0]
+                        if "App version:" in x:
+                            infosAboutTracker["appVersion"] = (x.split("App version:")[-1].lstrip()).split("\x1b")[0]
+                        if "secure_boot_v2: Verifying with RSA-PSS" in x:
+                            infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = True
+                        if "secure_boot_v2: Signature verified successfully!" in x:
+                            infosAboutTracker["secureBootV2CheckOKFirmware"] = True
+                        if "Partition Table:" in x:
+                            inPartTableDesc = True
+                        if "End of partition table" in x:
+                            inPartTableDesc = False
+                        if inPartTableDesc:
+                            #['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
+                            #
+                            arr = [b for b in x.split(" ") if b != "" and not "\x1b" in b and not "boot:" in b and not "(" in b]
+                            if arr[0].isnumeric():
+                                infosAboutTracker["partTableDesc"].append(arr)
+                    except:
+                        infosAboutTracker["error"] = "Can't read serial port (maybe already open by another software ?)"
+                        self.resultTestLayout.setInfosText(infosAboutTracker)
+                        print("Can't read serial port (maybe already open by another software ?)")
+            self.resultTestLayout.setInfosText(infosAboutTracker)
+        except:
+            print("ERROR : error on booting ESP")
+
+
+
+
 
     def click_appFlash(self):
-        print("app flash")
-        firmware = open("./firmware_tmp", "rb")
-        self.appFlashStatusLabel.setText("Flashed")
+        try:
+            print("app flash")
+            firmware = open("./firmware_tmp", "rb")
+            self.appFlashStatusLabel.setText("Flashed")
 
 
-        #Namespace(chip='auto', port=None, baud=115200, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
-        #flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
-        args = {'compress':None, 'flash_mode':'dio', 'flash_freq':'80m', 'no_compress':False, 'force':False, 'addr_filename':[(131072, firmware)], 'encrypt':None, 'encrypt_files':None, 'ignore_flash_encryption_efuse_setting':None, 'flash_size':'4MB', 'erase_all':False, 'no_stub':False, 'verify':None}
-        args = Dict2Class(args)
-        print(args)
+            #Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
+            #flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
+            args = {'compress':None, 'flash_mode':'dio', 'flash_freq':'80m', 'no_compress':False, 'force':False, 'addr_filename':[(131072, firmware)], 'encrypt':None, 'encrypt_files':None, 'ignore_flash_encryption_efuse_setting':None, 'flash_size':'4MB', 'erase_all':False, 'no_stub':False, 'verify':None}
+            args = Dict2Class(args)
+            print(args)
 
-        if (not self.esp.IS_STUB):
-            self.esp = self.esp.run_stub()
+            if (not self.esp.IS_STUB):
+                self.esp = self.esp.run_stub()
 
-        self.write_flash(self.esp, args, self.appFlashProgress)
+            self.write_flash(self.esp, args, self.appFlashProgress)
 
-        self.appFlashStatusLabel.setText("App flashed !")
+            self.appFlashStatusLabel.setText("App flashed !")
+        except:
+            print("ERROR: app flash failed")
 
     def specifySelectedPort(self, selectedSerialPort):
         self.selectedSerialPort = selectedSerialPort
         self.activate()
 
     def activate(self):
-        self.downloadContentBtn.setEnabled(self.activ)
+        self.downloadContentBtn.setEnabled(self.activ and self.notCurrentlyInDownload)
 
         if (self.selectedSerialPort == None or self.selectedSerialPort == False):
             isPortSelected = False
@@ -1355,6 +1376,7 @@ class ManageSerialLayout(QVBoxLayout):
         self.serialConnected = False
         self.signedBootloaderReady = False
         self.partTableReady = False
+        self.notCurrentlyInDownload = True
 
         self.resultTestLayout.resetLayout()
         self.activate()
@@ -1388,6 +1410,7 @@ class ManageSerialLayout(QVBoxLayout):
         self.serialConnected = False
         self.signedBootloaderReady = False
         self.partTableReady = False
+        self.notCurrentlyInDownload = True
 
         SerialLayout = QVBoxLayout()
 
@@ -1722,44 +1745,52 @@ class ConnectWindow(QDialog):
         url = base_url + '/frontend/account/login'
         params = {'email': self.emailLineEdit.text(), 'password': self.passwordLineEdit.text(), 'remember': 'true'}
 
-        res = requests.post(url, json = params)
-        if(res.status_code != 200):
-            if(hasattr(self, 'connexionError')):
-                self.connexionError.setText("Connexion au site internet impossible")
-            else:
-                self.connexionError = QLabel("Connexion au site internet impossible")
-                self.loginLayout.addRow(self.connexionError)
-            return
-        res = res.json()
-
-        if(res['status'] == 200):
-            self.user = res['user']
-            self.accessToken = res['accessToken']
-            print("res")
-
-            print(res)
-
-            resCheck = self.checkUserRightToUsePogrammer()
-            print(resCheck)
-            if resCheck["status"]!=200:
+        try:
+            res = requests.post(url, json = params)
+            if(res.status_code != 200):
                 if(hasattr(self, 'connexionError')):
-                    self.connexionError.setText(resCheck['message'])
+                    self.connexionError.setText("Echec de la requête avec le serveur (status!=200)")
                 else:
-                    self.connexionError = QLabel(resCheck['message'])
+                    self.connexionError = QLabel("Echec de la requête avec le serveur (status!=200)")
                     self.loginLayout.addRow(self.connexionError)
                 return
+            res = res.json()
+
+            if(res['status'] == 200):
+                self.user = res['user']
+                self.accessToken = res['accessToken']
+                print("res")
+
+                print(res)
+
+                resCheck = self.checkUserRightToUsePogrammer()
+                print(resCheck)
+                if resCheck["status"]!=200:
+                    if(hasattr(self, 'connexionError')):
+                        self.connexionError.setText(resCheck['message'])
+                    else:
+                        self.connexionError = QLabel(resCheck['message'])
+                        self.loginLayout.addRow(self.connexionError)
+                    return
 
 
 
-            self.mainWindow = MainWindow(self.accessToken)
-            self.mainWindow.show()
+                self.mainWindow = MainWindow(self.accessToken)
+                self.mainWindow.show()
 
-            self.close()
-        else:
-            if(hasattr(self, 'connexionError')):
-                self.connexionError.setText(res['message'])
+                self.close()
             else:
-                self.connexionError = QLabel(res['message'])
+                if(hasattr(self, 'connexionError')):
+                    self.connexionError.setText(res['message'])
+                else:
+                    self.connexionError = QLabel(res['message'])
+                    self.loginLayout.addRow(self.connexionError)
+        except:
+            print("can't connect to web server.")
+            if(hasattr(self, 'connexionError')):
+                self.connexionError.setText("Connexion au site internet impossible, verifier connexion internet")
+            else:
+                self.connexionError = QLabel("Connexion au site internet impossible, verifier connexion internet")
                 self.loginLayout.addRow(self.connexionError)
 
 
