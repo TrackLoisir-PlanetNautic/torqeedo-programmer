@@ -504,6 +504,14 @@ class ManageSerialLayout(QVBoxLayout):
                 _esp = None
         return _esp
 
+    def is_abs_done_fuse_ok(self):
+        for efu in self.efuse[0].efuses:
+            if (efu.name == "ABS_DONE_1"):
+                print(efu.name)
+                print(efu.get())
+                return efu.get()
+        return False
+
     def is_the_same_block2(self):
         if(not (self.signHashKeyReady == True and self.efuse != None)):
             return -2
@@ -1157,7 +1165,7 @@ class ManageSerialLayout(QVBoxLayout):
             [self.selectedSerialPort],
             port=self.selectedSerialPort,
             connect_attempts=1,
-            initial_baud=460800,
+            initial_baud=115200,
             chip="esp32",
             trace=False,
             before="default_reset",
@@ -1170,6 +1178,7 @@ class ManageSerialLayout(QVBoxLayout):
             print(mac)
             self.labelMacAddr.setText("MAC Addr: "+str(mac))
             self.efuse = self.get_efuses(self.esp)
+            self.absDoneStatus.setText("secure boot ok: " + str(self.is_abs_done_fuse_ok()))
             print(self.efuse)
             if (self.is_the_same_block2() == 1):
                 self.burnHashKeyStatusLabel.setText("Already Burned (same)")
@@ -1195,9 +1204,15 @@ class ManageSerialLayout(QVBoxLayout):
                 self.burnProgress.setValue(0)
                 self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
                 self.burnProgress.setValue(50)
+                time.sleep(0.25)
                 self.burn_key(self.esp, self.efuse[0], "secure_boot_v2", self.signHashKey, True, None)
                 self.burnProgress.setValue(100)
                 self.burnHashKeyStatusLabel.setText("Burned !")
+                time.sleep(0.25)
+                self.efuse = self.get_efuses(self.esp)
+                self.absDoneStatus.setText("secure boot ok: "+str(self.is_abs_done_fuse_ok()))
+                if (self.is_the_same_block2() != 1):
+                    self.burnHashKeyStatusLabel.setText("Burn key failed !!")
             except:
                 print("ERROR : can't burn now !")
         else:
@@ -1273,8 +1288,6 @@ class ManageSerialLayout(QVBoxLayout):
                             infosAboutTracker["MODE"] = (x.split("MODE :")[-1].lstrip()).split("\x1b")[0]
                         if "secure boot v2 enabled" in x:
                             infosAboutTracker["secureBootV2EnabledBootloader"] = True
-                        if "secure boot verification succeeded" in x:
-                            infosAboutTracker[""] = True
                         if "secure boot verification succeeded" in x:
                             infosAboutTracker["secureBootV2CheckOKBootloader"] = True
                         if "Compile time:" in x:
@@ -1365,6 +1378,7 @@ class ManageSerialLayout(QVBoxLayout):
         self.bootloaderPartTableFlashProgress.setValue(0)
         self.labelDownloadContent.setText("Not downloaded")
         self.labelTestSerial.setText("Not connected")
+        self.absDoneStatus.setText("secure boot ok: Not checked")
         self.burnHashKeyStatusLabel.setText("Not burned")
         self.appFlashStatusLabel.setText("No app flashed")
         self.bootloaderPartTableFlashStatusLabel = QLabel("Not flashed")
@@ -1448,13 +1462,17 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.labelTestSerial = QLabel("Not connected")
 
+
+        self.absDoneStatus = QLabel("secure boot ok: Not checked")
         self.labelMacAddr = QLabel("MAC Addr: ")
 
 
         SerialTestLayout.addWidget(self.testSerialBtn)
         SerialTestLayout.addWidget(self.labelTestSerial)
         SerialTestVLayout.addLayout(SerialTestLayout)
+        SerialTestVLayout.addWidget(self.absDoneStatus)
         SerialTestVLayout.addWidget(self.labelMacAddr)
+
 
         SerialLayout.addLayout(SerialTestVLayout)
 
