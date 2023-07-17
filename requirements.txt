@@ -1,6 +1,6 @@
 pyserial
 requests
-PyQt5
+PyQt6
 cryptography
 ecdsa
 bitstring
