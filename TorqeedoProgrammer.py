@@ -63,6 +63,7 @@ from esptool.cmds import (
 
 
 from collections import namedtuple
+
 DefChip = namedtuple("DefChip", ["chip_name", "efuse_lib", "chip_class"])
 
 
@@ -152,10 +153,8 @@ SUPPORTED_CHIPS = {
 }
 
 
-
-
 base_url = "https://app.trackloisirs.com/api"
-#base_url = "http://localhost:8080/api"
+# base_url = "http://localhost:8080/api"
 
 
 def _update_image_flash_params(esp, address, args, image):
@@ -241,12 +240,14 @@ def _update_image_flash_params(esp, address, args, image):
         image = image[0:2] + flash_params + image[4:]
     return image
 
+
 class Dict2Class(object):
-      
+
     def __init__(self, my_dict):
-          
+
         for key in my_dict:
             setattr(self, key, my_dict[key])
+
 
 class Color(QWidget):
 
@@ -258,68 +259,114 @@ class Color(QWidget):
         palette.setColor(QPalette.Window, QColor(color))
         self.setPalette(palette)
 
+
 class SelectTrackerLayout(QVBoxLayout):
+    def __init__(self, accessToken, SerialManager):
+        super(SelectTrackerLayout, self).__init__()
+        self.accessToken = accessToken
+        self.SerialManager = SerialManager
+        self.filteredTorqeedoIdList = ["Select"]
+
+        self.checkBoxNewtrackeronlyState = 0
+        self.trackerFilterText = ""
+
+        # Initialisation de QLineEdit pour la recherche
+        self.searchLineEdit = QLineEdit()
+        self.searchLineEdit.setPlaceholderText("Type to filter...")
+        self.searchLineEdit.textChanged.connect(self.filterTrackers)
+        # Connexion du signal de changement de texte
+
+        # Checkbox checkBoxNewtrackeronly
+        self.checkBoxNewtrackeronly = QCheckBox("No ping only")
+        self.checkBoxNewtrackeronly.stateChanged.connect(self.checkboxChanged)
+
+        # Configuration existante du QComboBox
+        self.torqeedoIdComboBox = QComboBox()
+        self.torqeedoIdComboBox.setEditable(
+            True
+        )  # Permet d'éditer si nécessaire, mais vous pourriez ne pas en avoir besoin
+        self.torqeedoIdComboBox.addItems(self.filteredTorqeedoIdList)
+
+        # Ajout de QLineEdit et QComboBox au layout
+        self.addWidget(self.searchLineEdit)
+        self.addWidget(self.checkBoxNewtrackeronly)
+        self.addWidget(self.torqeedoIdComboBox)
+        self.click_refresh()  # Appel initial pour remplir la liste
 
     def click_refresh(self):
         print("Refresh list")
-        #request to get the torqeedo id list
-        url = base_url + '/backend/pythonProgrammer/getTorqeedoControllersList'
-        headers={'authorization': 'Bearer ' + self.accessToken}	
-        res = requests.get(url, headers = headers, timeout=5)
+        # request to get the torqeedo id list
+        url = base_url + "/backend/pythonProgrammer/getTorqeedoControllersList"
+        headers = {"authorization": "Bearer " + self.accessToken}
+        res = requests.get(url, headers=headers, timeout=5)
         res = res.json()
 
-        if(res['status'] == 200):
-            self.torqeedoIdList = res['data']
+        if res["status"] == 200:
+            self.torqeedoIdList = res["data"]
             self.torqeedoIdComboBox.clear()
             self.torqeedoIdComboBox.addItems(["Select"])
             print(self.torqeedoIdList)
-            self.torqeedoIdComboBox.addItems([item["kingwoId"] for item in self.torqeedoIdList])
+            self.torqeedoIdComboBox.addItems(
+                [item["kingwoId"] for item in self.torqeedoIdList]
+            )
         else:
-            if(hasattr(self, 'getTorqeedoIdError')):
-                self.getTorqeedoIdError.setText(res['message'])
+            if hasattr(self, "getTorqeedoIdError"):
+                self.getTorqeedoIdError.setText(res["message"])
             else:
-                self.getTorqeedoIdError = QLabel(res['message'])
-                #self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
-
+                self.getTorqeedoIdError = QLabel(res["message"])
+                # self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
 
     def select_tracker(self, id):
         print("Select ID")
         print(id)
         tracker = None
-        if (id > 0):
+        if id > 0:
             realid = int(id) - 1
             print(realid)
             tracker = self.torqeedoIdList[realid]
-            
+
         self.SerialManager.setSelectedTracker(tracker)
 
+    def checkboxChanged(self, state):
+        print("Checkbox changed")
+        print(state)
+        self.checkBoxNewtrackeronlyState = state
+        self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
 
-    def __init__(self, accessToken, SerialManager):
-        super(SelectTrackerLayout, self).__init__()
-        self.accessToken = accessToken
-        self.SerialManager = SerialManager
+    def filterTrackers(self, text):
+        self.trackerFilterText = text
+        self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
 
-        SelectLayout = QVBoxLayout()
+    def filter(self, state, text):
+        # Filtrage des trackers basé sur le texte saisi
+        localFilteredList = []
+        if text == "":
+            localFilteredList = self.torqeedoIdList
+        else:
+            localFilteredList = [
+                item
+                for item in self.torqeedoIdList
+                if text.lower() in item["kingwoId"].lower()
+            ]
 
-        self.refreshBtn = QPushButton()
-        self.refreshBtn.setText("Refresh Trackers List")
-        self.refreshBtn.clicked.connect(self.click_refresh)
+        # Filtrage des trackers basé sur l'état de la case à cocher
+        if state == 2:
+            print("Filtering only new tracker")
+            filtered_list = [
+                i["kingwoId"]
+                for i in localFilteredList
+                if i["lastPing"] is None
+                or i["lastPing"] == "null"
+                or i["lastPing"] == ""
+                or i["lastPing"] == 0
+            ]
+        else:
+            print("Filtering all tracker")
+            filtered_list = [i["kingwoId"] for i in localFilteredList]
 
+        self.torqeedoIdComboBox.clear()
+        self.torqeedoIdComboBox.addItems(filtered_list)
 
-        self.torqeedoIdList = ["Select"]
-        self.torqeedoIdComboBox = QComboBox()
-        self.torqeedoIdComboBox.addItems(self.torqeedoIdList)
-        self.torqeedoIdComboBox.currentIndexChanged.connect(self.select_tracker)
-        self.torqeedoIdComboBox.setEditable(True)
-
-
-        SelectLayout.addWidget(self.refreshBtn)
-
-        SelectLayout.addWidget(self.torqeedoIdComboBox)
-
-        self.addLayout(SelectLayout)
-        self.click_refresh()
-        
 
 def hexify(bitstring, separator=""):
     as_bytes = tuple(b for b in bitstring)
@@ -330,7 +377,7 @@ class ResultTestLayout(QVBoxLayout):
 
     def __init__(self):
         super(ResultTestLayout, self).__init__()
-        
+
         self.serialConnected = False
         self.selectedSerialPort = None
 
@@ -338,15 +385,22 @@ class ResultTestLayout(QVBoxLayout):
 
         self.addLayout(self.SerialLayout)
 
-        self.resetESP32ForAResult = QLabel("Click on Restart ESP32 for a result")
+        self.resetESP32ForAResult = QLabel(
+            "Click on Restart ESP32 for a result"
+        )
         self.SerialLayout.addWidget(self.resetESP32ForAResult)
 
-
     def checkPartTableArray(self, partArray):
-        if partArray == [['0', 'nvs', 'WiFi', 'data', '01', '02', '00018000'], ['1', 'otadata', 'OTA', 'data', '01', '00', '0001e000'], ['2', 'app0', 'OTA', 'app', '00', '10', '00020000'], ['3', 'app1', 'OTA', 'app', '00', '11', '00200000'], ['4', 'spiffs', 'Unknown', 'data', '01', '82', '003f0000']]:
+        if partArray == [
+            ["0", "nvs", "WiFi", "data", "01", "02", "00018000"],
+            ["1", "otadata", "OTA", "data", "01", "00", "0001e000"],
+            ["2", "app0", "OTA", "app", "00", "10", "00020000"],
+            ["3", "app1", "OTA", "app", "00", "11", "00200000"],
+            ["4", "spiffs", "Unknown", "data", "01", "82", "003f0000"],
+        ]:
             return True
         return False
-    
+
     def resetLayout(self):
         try:
             self.resetESP32ForAResult.deleteLater()
@@ -381,9 +435,7 @@ class ResultTestLayout(QVBoxLayout):
         
         """
 
-
-
-        #self.resetESP32ForAResult.destroy()
+        # self.resetESP32ForAResult.destroy()
         try:
             self.resetESP32ForAResult.deleteLater()
         except:
@@ -393,8 +445,6 @@ class ResultTestLayout(QVBoxLayout):
             self.esp32CommError.deleteLater()
         except:
             pass
-
-
 
         try:
             self.secureBootV2EnabledBootloader.deleteLater()
@@ -418,31 +468,61 @@ class ResultTestLayout(QVBoxLayout):
             self.SerialLayout.addWidget(self.secureBootV2Enabled)
             return
 
-        self.secureBootV2EnabledBootloader = QLabel('Secure boot v2 enabled in first bootloader: <font color="blue">%s</font>' % str(infoArray["secureBootV2EnabledBootloader"]))
+        self.secureBootV2EnabledBootloader = QLabel(
+            'Secure boot v2 enabled in first bootloader: <font color="blue">%s</font>'
+            % str(infoArray["secureBootV2EnabledBootloader"])
+        )
         self.SerialLayout.addWidget(self.secureBootV2EnabledBootloader)
-        self.secureBootV2CheckOKBootloader = QLabel('Signed second bootloader check ok : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKBootloader"]))
+        self.secureBootV2CheckOKBootloader = QLabel(
+            'Signed second bootloader check ok : <font color="blue">%s</font>'
+            % str(infoArray["secureBootV2CheckOKBootloader"])
+        )
         self.SerialLayout.addWidget(self.secureBootV2CheckOKBootloader)
-        self.secureBootV2EnabledBootloaderStage2 = QLabel('Secure boot v2 enabled in second bootloader : <font color="blue">%s</font>' % str(infoArray["secureBootV2EnabledBootloaderStage2"]))
+        self.secureBootV2EnabledBootloaderStage2 = QLabel(
+            'Secure boot v2 enabled in second bootloader : <font color="blue">%s</font>'
+            % str(infoArray["secureBootV2EnabledBootloaderStage2"])
+        )
         self.SerialLayout.addWidget(self.secureBootV2EnabledBootloaderStage2)
-        self.secureBootV2CheckOK = QLabel('Signed firmware check ok : <font color="blue">%s</font>' % str(infoArray["secureBootV2CheckOKFirmware"]))
+        self.secureBootV2CheckOK = QLabel(
+            'Signed firmware check ok : <font color="blue">%s</font>'
+            % str(infoArray["secureBootV2CheckOKFirmware"])
+        )
         self.SerialLayout.addWidget(self.secureBootV2CheckOK)
 
-        self.projectName = QLabel('Firmware project name : <font color="blue">%s</font>' % str(infoArray["projectName"]))
+        self.projectName = QLabel(
+            'Firmware project name : <font color="blue">%s</font>'
+            % str(infoArray["projectName"])
+        )
         self.SerialLayout.addWidget(self.projectName)
-        self.aes128Key = QLabel('4 first char of aes key: <font color="blue">%s</font>' % str(infoArray["AES128_KEY"]))
+        self.aes128Key = QLabel(
+            '4 first char of aes key: <font color="blue">%s</font>'
+            % str(infoArray["AES128_KEY"])
+        )
         self.SerialLayout.addWidget(self.aes128Key)
-        self.versionNumber = QLabel('Firmware Version Number: <font color="blue">%s</font>' % str(infoArray["VERSION_NUMBER"]))
+        self.versionNumber = QLabel(
+            'Firmware Version Number: <font color="blue">%s</font>'
+            % str(infoArray["VERSION_NUMBER"])
+        )
         self.SerialLayout.addWidget(self.versionNumber)
-        self.trackerGpsId = QLabel('Tracker kingwo id: <font color="blue">%s</font>' % str(infoArray["TRACKER_GPS_ID"]))
+        self.trackerGpsId = QLabel(
+            'Tracker kingwo id: <font color="blue">%s</font>'
+            % str(infoArray["TRACKER_GPS_ID"])
+        )
         self.SerialLayout.addWidget(self.trackerGpsId)
-        self.wifiBackupSsid = QLabel('Wifi backup SSID: <font color="blue">%s</font>' % str(infoArray["WIFI_BACKUP_SSID"]))
+        self.wifiBackupSsid = QLabel(
+            'Wifi backup SSID: <font color="blue">%s</font>'
+            % str(infoArray["WIFI_BACKUP_SSID"])
+        )
         self.SerialLayout.addWidget(self.wifiBackupSsid)
-        self.mode = QLabel('MODE: <font color="blue">%s</font>' % str(infoArray["MODE"]))
+        self.mode = QLabel(
+            'MODE: <font color="blue">%s</font>' % str(infoArray["MODE"])
+        )
         self.SerialLayout.addWidget(self.mode)
-        self.realCompilationTime = QLabel('Compilation time: <font color="blue">%s</font>' % str(infoArray["REAL_COMPILATION_TIME"]))
+        self.realCompilationTime = QLabel(
+            'Compilation time: <font color="blue">%s</font>'
+            % str(infoArray["REAL_COMPILATION_TIME"])
+        )
         self.SerialLayout.addWidget(self.realCompilationTime)
-
-        
 
         if len(infoArray["DEBUG"]) == 0:
             debugsList = "No debug"
@@ -451,14 +531,19 @@ class ResultTestLayout(QVBoxLayout):
             for deb in infoArray["DEBUG"]:
                 debugsList = debugsList + deb + " "
 
-
-        self.realCompilationTime = QLabel('Debug activés : <font color="blue">%s</font>' % str(debugsList))
+        self.realCompilationTime = QLabel(
+            'Debug activés : <font color="blue">%s</font>' % str(debugsList)
+        )
         self.SerialLayout.addWidget(self.realCompilationTime)
 
         partTableCheckOk = self.checkPartTableArray(infoArray["partTableDesc"])
 
-        self.partTableDesc = QLabel('PartTable check : <font color="blue">%s</font>' % str(partTableCheckOk))
+        self.partTableDesc = QLabel(
+            'PartTable check : <font color="blue">%s</font>'
+            % str(partTableCheckOk)
+        )
         self.SerialLayout.addWidget(self.partTableDesc)
+
 
 class ManageSerialLayout(QVBoxLayout):
 
@@ -478,7 +563,11 @@ class ManageSerialLayout(QVBoxLayout):
             try:
                 if chip == "auto":
                     _esp = detect_chip(
-                        each_port, initial_baud, before, trace, connect_attempts
+                        each_port,
+                        initial_baud,
+                        before,
+                        trace,
+                        connect_attempts,
                     )
                     self.labelTestSerial.setText("ESP connected")
                 else:
@@ -490,13 +579,19 @@ class ManageSerialLayout(QVBoxLayout):
             except (esptool.FatalError, OSError) as err:
                 self.labelTestSerial.setText("Can't connect")
                 self.labelMacAddr.setText("MAC Addr: ")
-                print('handle')
-                if str("Failed to connect to Espressif device: No serial data received.") in str(err):
+                print("handle")
+                if str(
+                    "Failed to connect to Espressif device: No serial data received."
+                ) in str(err):
                     print("no serial data")
                     self.labelTestSerial.setText("ESP not connected (no data)")
-                if str("Failed to connect to ESP32: Invalid head of packet (0x01): Possible serial noise or corruption.") in str(err):
+                if str(
+                    "Failed to connect to ESP32: Invalid head of packet (0x01): Possible serial noise or corruption."
+                ) in str(err):
                     print("connected but corrupted data")
-                    self.labelTestSerial.setText("ESP not connected (maybe already connected to another software, please kill it)")
+                    self.labelTestSerial.setText(
+                        "ESP not connected (maybe already connected to another software, please kill it)"
+                    )
 
                 print("%s failed to connect: %s" % (each_port, err))
                 if _esp and _esp._port:
@@ -506,43 +601,54 @@ class ManageSerialLayout(QVBoxLayout):
 
     def is_abs_done_fuse_ok(self):
         for efu in self.efuse[0].efuses:
-            if (efu.name == "ABS_DONE_1"):
+            if efu.name == "ABS_DONE_1":
                 print(efu.name)
                 print(efu.get())
                 return efu.get()
         return False
 
     def is_the_same_block2(self):
-        if(not (self.signHashKeyReady == True and self.efuse != None)):
+        if not (self.signHashKeyReady == True and self.efuse != None):
             return -2
 
         print("------")
         print(str(self.efuse[0].blocks[2].bitarray)[2:])
         returnedNewBitString = ""
         for i in range(0, int(len(hexify(self.signHashKey))), 2):
-            returnedNewBitString += ((str(hexify(self.signHashKey))[i+1]))
-            returnedNewBitString += ((str(hexify(self.signHashKey))[i]))
+            returnedNewBitString += str(hexify(self.signHashKey))[i + 1]
+            returnedNewBitString += str(hexify(self.signHashKey))[i]
         print(returnedNewBitString[::-1])
         print("------")
 
-        if (str(str(self.efuse[0].blocks[2].bitarray)[2:]) == "0000000000000000000000000000000000000000000000000000000000000000"):
+        if (
+            str(str(self.efuse[0].blocks[2].bitarray)[2:])
+            == "0000000000000000000000000000000000000000000000000000000000000000"
+        ):
             return -1
 
-        if (str(str(self.efuse[0].blocks[2].bitarray)[2:]) == str(returnedNewBitString[::-1])):
+        if str(str(self.efuse[0].blocks[2].bitarray)[2:]) == str(
+            returnedNewBitString[::-1]
+        ):
             return 1
         return 0
 
-    def get_efuses(self, esp, skip_connect=False, debug_mode=True, do_not_confirm=False):
+    def get_efuses(
+        self, esp, skip_connect=False, debug_mode=True, do_not_confirm=False
+    ):
         for name in SUPPORTED_CHIPS:
             print(esp.CHIP_NAME)
             if SUPPORTED_CHIPS[name].chip_name == esp.CHIP_NAME:
                 efuse = SUPPORTED_CHIPS[name].efuse_lib
                 return (
-                    efuse.EspEfuses(esp, skip_connect, debug_mode, do_not_confirm),
+                    efuse.EspEfuses(
+                        esp, skip_connect, debug_mode, do_not_confirm
+                    ),
                     efuse.operations,
                 )
         else:
-            raise esptool.FatalError("get_efuses: Unsupported chip (%s)" % esp.CHIP_NAME)
+            raise esptool.FatalError(
+                "get_efuses: Unsupported chip (%s)" % esp.CHIP_NAME
+            )
 
     def reset_run_esp(self, esp):
         esp.hard_reset()
@@ -557,7 +663,9 @@ class ManageSerialLayout(QVBoxLayout):
                 for i in range(0, len(blocked_efuses_after_burn), 5):
                     print(
                         "              ",
-                        "".join("{}".format(blocked_efuses_after_burn[i : i + 5 :])),
+                        "".join(
+                            "{}".format(blocked_efuses_after_burn[i : i + 5 :])
+                        ),
                     )
 
         efuse_name_list = [efuse_name]
@@ -568,7 +676,9 @@ class ManageSerialLayout(QVBoxLayout):
         attention = ""
         print("The efuses to burn:")
         for block in efuses.blocks:
-            burn_list_a_block = [e for e in burn_efuses_list if e.block == block.id]
+            burn_list_a_block = [
+                e for e in burn_efuses_list if e.block == block.id
+            ]
             if len(burn_list_a_block):
                 print("  from BLOCK%d" % (block.id))
                 for field in burn_list_a_block:
@@ -610,7 +720,9 @@ class ManageSerialLayout(QVBoxLayout):
                 "any SRAM and register operations."
             )
             print("                               espefuse will not work.")
-            print("                               esptool can read/write only flash.")
+            print(
+                "                               esptool can read/write only flash."
+            )
 
         if "DIS_DOWNLOAD_MODE" in efuse_name_list:
             print(
@@ -664,8 +776,7 @@ class ManageSerialLayout(QVBoxLayout):
 
     def burn_key(self, esp, efuses, blk, key, no_protect_key, args):
         block_name = blk
-        #efuses.force_write_always = False
-
+        # efuses.force_write_always = False
 
         print("Burn keys to blocks:")
         efuse = None
@@ -707,9 +818,7 @@ class ManageSerialLayout(QVBoxLayout):
 
         msg = "Burn keys in efuse blocks.\n"
         if no_protect_key:
-            msg += (
-                "The key block will left readable and writeable (due to --no-protect-key)"
-            )
+            msg += "The key block will left readable and writeable (due to --no-protect-key)"
         else:
             msg += "The key block will be read and write protected "
             "(no further changes or readback)"
@@ -718,23 +827,22 @@ class ManageSerialLayout(QVBoxLayout):
             return
         print("Successful")
 
-
-
     def flash_id(self, esp):
-        """ 
-            (manufacturer, device, flash_size, flash_type)
+        """
+        (manufacturer, device, flash_size, flash_type)
         """
         val = {}
         try:
             flash_id = esp.flash_id()
-            val["manufacturer"] = (flash_id & 0xFF)
+            val["manufacturer"] = flash_id & 0xFF
             flid_lowbyte = (flash_id >> 16) & 0xFF
             val["device"] = ((flash_id >> 8) & 0xFF, flid_lowbyte)
-            val["flash_size"] = (DETECTED_FLASH_SIZES.get(flid_lowbyte, "Unknown"))
+            val["flash_size"] = DETECTED_FLASH_SIZES.get(
+                flid_lowbyte, "Unknown"
+            )
             return val
         except (esptool.FatalError, OSError) as err:
             print(err)
-
 
     def write_flash(self, esp, args, progressBar):
         # set args.compress based on default behaviour:
@@ -743,7 +851,11 @@ class ManageSerialLayout(QVBoxLayout):
         if args.compress is None and not args.no_compress:
             args.compress = not args.no_stub
 
-        if not args.force and esp.CHIP_NAME != "ESP8266" and not esp.secure_download_mode:
+        if (
+            not args.force
+            and esp.CHIP_NAME != "ESP8266"
+            and not esp.secure_download_mode
+        ):
             # Check if secure boot is active
             if esp.get_secure_boot_enabled():
                 for address, _ in args.addr_filename:
@@ -761,7 +873,9 @@ class ManageSerialLayout(QVBoxLayout):
                 except (esptool.FatalError, struct.error, RuntimeError):
                     continue
                 finally:
-                    argfile.seek(0)  # LoadFirmwareImage changes the file handle position
+                    argfile.seek(
+                        0
+                    )  # LoadFirmwareImage changes the file handle position
                 if image.chip_id != esp.IMAGE_CHIP_ID:
                     raise esptool.FatalError(
                         f"{argfile.name} is not an {esp.CHIP_NAME} image. "
@@ -769,9 +883,13 @@ class ManageSerialLayout(QVBoxLayout):
                     )
 
                 # this logic below decides which min_rev to use, min_rev or min/max_rev_full
-                if image.max_rev_full == 0:  # image does not have max/min_rev_full fields
+                if (
+                    image.max_rev_full == 0
+                ):  # image does not have max/min_rev_full fields
                     use_rev_full_fields = False
-                elif image.max_rev_full == 65535:  # image has default value of max_rev_full
+                elif (
+                    image.max_rev_full == 65535
+                ):  # image has default value of max_rev_full
                     if (
                         image.min_rev_full == 0 and image.min_rev != 0
                     ):  # min_rev_full is not set, min_rev is used
@@ -783,18 +901,18 @@ class ManageSerialLayout(QVBoxLayout):
                 if use_rev_full_fields:
                     rev = esp.get_chip_revision()
                     if rev < image.min_rev_full or rev > image.max_rev_full:
-                        error_str = f"{argfile.name} requires chip revision in range "
-                        error_str += (
-                            f"[v{image.min_rev_full // 100}.{image.min_rev_full % 100} - "
+                        error_str = (
+                            f"{argfile.name} requires chip revision in range "
                         )
+                        error_str += f"[v{image.min_rev_full // 100}.{image.min_rev_full % 100} - "
                         if image.max_rev_full == 65535:
                             error_str += "max rev not set] "
                         else:
-                            error_str += (
-                                f"v{image.max_rev_full // 100}.{image.max_rev_full % 100}] "
-                            )
+                            error_str += f"v{image.max_rev_full // 100}.{image.max_rev_full % 100}] "
                         error_str += f"(this chip is revision v{rev // 100}.{rev % 100})"
-                        raise FatalError(f"{error_str}. Use --force to flash anyway.")
+                        raise FatalError(
+                            f"{error_str}. Use --force to flash anyway."
+                        )
                 else:
                     # In IDF, image.min_rev is set based on Kconfig option.
                     # For C3 chip, image.min_rev is the Minor revision
@@ -827,7 +945,10 @@ class ManageSerialLayout(QVBoxLayout):
                 crypt_cfg_efuse = esp.get_flash_crypt_config()
 
                 if crypt_cfg_efuse is not None and crypt_cfg_efuse != 0xF:
-                    print("Unexpected FLASH_CRYPT_CONFIG value: 0x%x" % (crypt_cfg_efuse))
+                    print(
+                        "Unexpected FLASH_CRYPT_CONFIG value: 0x%x"
+                        % (crypt_cfg_efuse)
+                    )
                     do_write = False
 
                 enc_key_valid = esp.is_flash_encryption_key_valid()
@@ -837,13 +958,19 @@ class ManageSerialLayout(QVBoxLayout):
                     do_write = False
 
             # Determine which files list contain the ones to encrypt
-            files_to_encrypt = args.addr_filename if args.encrypt else args.encrypt_files
+            files_to_encrypt = (
+                args.addr_filename if args.encrypt else args.encrypt_files
+            )
 
             for address, argfile in files_to_encrypt:
                 if address % esp.FLASH_ENCRYPTED_WRITE_ALIGN:
                     print(
                         "File %s address 0x%x is not %d byte aligned, can't flash encrypted"
-                        % (argfile.name, address, esp.FLASH_ENCRYPTED_WRITE_ALIGN)
+                        % (
+                            argfile.name,
+                            address,
+                            esp.FLASH_ENCRYPTED_WRITE_ALIGN,
+                        )
                     )
                     do_write = False
 
@@ -906,7 +1033,8 @@ class ManageSerialLayout(QVBoxLayout):
         where, of course, args.encrypt is either True or False
         """
         all_files = [
-            (offs, filename, args.encrypt) for (offs, filename) in args.addr_filename
+            (offs, filename, args.encrypt)
+            for (offs, filename) in args.addr_filename
         ]
         """
         Now do the same with encrypt_files list, if defined.
@@ -914,28 +1042,34 @@ class ManageSerialLayout(QVBoxLayout):
         """
         if args.encrypt_files is not None:
             encrypted_files_flag = [
-                (offs, filename, True) for (offs, filename) in args.encrypt_files
+                (offs, filename, True)
+                for (offs, filename) in args.encrypt_files
             ]
 
             # Concatenate both lists and sort them.
             # As both list are already sorted, we could simply do a merge instead,
             # but for the sake of simplicity and because the lists are very small,
             # let's use sorted.
-            all_files = sorted(all_files + encrypted_files_flag, key=lambda x: x[0])
+            all_files = sorted(
+                all_files + encrypted_files_flag, key=lambda x: x[0]
+            )
 
         for address, argfile, encrypted in all_files:
             compress = args.compress
 
             # Check whether we can compress the current file before flashing
             if compress and encrypted:
-                print("\nWARNING: - compress and encrypt options are mutually exclusive ")
+                print(
+                    "\nWARNING: - compress and encrypt options are mutually exclusive "
+                )
                 print("Will flash %s uncompressed" % argfile.name)
                 compress = False
 
             if args.no_stub:
                 print("Erasing flash...")
             image = pad_to(
-                argfile.read(), esp.FLASH_ENCRYPTED_WRITE_ALIGN if encrypted else 4
+                argfile.read(),
+                esp.FLASH_ENCRYPTED_WRITE_ALIGN if encrypted else 4,
             )
             if len(image) == 0:
                 print("WARNING: File %s is empty" % argfile.name)
@@ -951,7 +1085,9 @@ class ManageSerialLayout(QVBoxLayout):
                 decompress = zlib.decompressobj()
                 blocks = esp.flash_defl_begin(uncsize, len(image), address)
             else:
-                blocks = esp.flash_begin(uncsize, address, begin_rom_encrypted=encrypted)
+                blocks = esp.flash_begin(
+                    uncsize, address, begin_rom_encrypted=encrypted
+                )
             argfile.seek(0)  # in case we need it again
             seq = 0
             bytes_sent = 0  # bytes sent on wire
@@ -959,7 +1095,7 @@ class ManageSerialLayout(QVBoxLayout):
             t = time.time()
 
             timeout = DEFAULT_TIMEOUT
-            
+
             while len(image) > 0:
                 progressBar.setValue(100 * (seq + 1) // blocks)
                 print(100 * (seq + 1) // blocks)
@@ -976,12 +1112,12 @@ class ManageSerialLayout(QVBoxLayout):
                     bytes_written += block_uncompressed
                     block_timeout = max(
                         DEFAULT_TIMEOUT,
-                        timeout_per_mb(ERASE_WRITE_TIMEOUT_PER_MB, block_uncompressed),
+                        timeout_per_mb(
+                            ERASE_WRITE_TIMEOUT_PER_MB, block_uncompressed
+                        ),
                     )
                     if not esp.IS_STUB:
-                        timeout = (
-                            block_timeout  # ROM code writes block to flash before ACKing
-                        )
+                        timeout = block_timeout  # ROM code writes block to flash before ACKing
                     esp.flash_defl_block(block, seq, timeout=timeout)
                     if esp.IS_STUB:
                         # Stub ACKs when block is received,
@@ -989,7 +1125,9 @@ class ManageSerialLayout(QVBoxLayout):
                         timeout = block_timeout
                 else:
                     # Pad the last block
-                    block = block + b"\xff" * (esp.FLASH_WRITE_SIZE - len(block))
+                    block = block + b"\xff" * (
+                        esp.FLASH_WRITE_SIZE - len(block)
+                    )
                     if encrypted:
                         esp.flash_encrypt_block(block, seq)
                     else:
@@ -1003,13 +1141,17 @@ class ManageSerialLayout(QVBoxLayout):
                 # Stub only writes each block to flash after 'ack'ing the receive,
                 # so do a final dummy operation which will not be 'ack'ed
                 # until the last block has actually been written out to flash
-                esp.read_reg(ESPLoader.CHIP_DETECT_MAGIC_REG_ADDR, timeout=timeout)
+                esp.read_reg(
+                    ESPLoader.CHIP_DETECT_MAGIC_REG_ADDR, timeout=timeout
+                )
 
             t = time.time() - t
             speed_msg = ""
             if compress:
                 if t > 0.0:
-                    speed_msg = " (effective %.1f kbit/s)" % (uncsize / t * 8 / 1000)
+                    speed_msg = " (effective %.1f kbit/s)" % (
+                        uncsize / t * 8 / 1000
+                    )
                 print_overwrite(
                     "Wrote %d bytes (%d compressed) at 0x%08x in %.1f seconds%s..."
                     % (uncsize, bytes_sent, address, t, speed_msg),
@@ -1017,7 +1159,9 @@ class ManageSerialLayout(QVBoxLayout):
                 )
             else:
                 if t > 0.0:
-                    speed_msg = " (%.1f kbit/s)" % (bytes_written / t * 8 / 1000)
+                    speed_msg = " (%.1f kbit/s)" % (
+                        bytes_written / t * 8 / 1000
+                    )
                 print_overwrite(
                     "Wrote %d bytes at 0x%08x in %.1f seconds%s..."
                     % (bytes_written, address, t, speed_msg),
@@ -1034,7 +1178,9 @@ class ManageSerialLayout(QVBoxLayout):
                             "MD5 of 0xFF is %s"
                             % (hashlib.md5(b"\xFF" * uncsize).hexdigest())
                         )
-                        raise FatalError("MD5 of file does not match data in flash!")
+                        raise FatalError(
+                            "MD5 of file does not match data in flash!"
+                        )
                     else:
                         print("Hash of data verified.")
                 except NotImplementedInROMError:
@@ -1067,7 +1213,9 @@ class ManageSerialLayout(QVBoxLayout):
             # If some encrypted files have been flashed,
             # print a warning saying that we won't check them
             if args.encrypt or args.encrypt_files is not None:
-                print("WARNING: - cannot verify encrypted files, they will be ignored")
+                print(
+                    "WARNING: - cannot verify encrypted files, they will be ignored"
+                )
             # Call verify_flash function only if there is at least
             # one non-encrypted file flashed
             if not args.encrypt:
@@ -1075,31 +1223,37 @@ class ManageSerialLayout(QVBoxLayout):
 
     def download_and_store(self, endpoint, store_path):
         url = base_url + endpoint
-        headers={'authorization': 'Bearer ' + self.accessToken, 'torqctrlid': str(self.trackerSelected["torqCtrlId"])}	
-        res = requests.get(url, headers = headers, timeout=5, stream=True)
+        headers = {
+            "authorization": "Bearer " + self.accessToken,
+            "torqctrlid": str(self.trackerSelected["torqCtrlId"]),
+        }
+        res = requests.get(url, headers=headers, timeout=5, stream=True)
         print(res)
         if res.status_code != 200:
             self.labelDownloadContent.setText(res.reason)
             return 0
-        
+
         path = store_path
-        with open(path, 'wb') as f:
-            total_length = int(res.headers.get('content-length'))
+        with open(path, "wb") as f:
+            total_length = int(res.headers.get("content-length"))
             chunk_size = 1024
-            total_chunk = int(total_length/chunk_size)
+            total_chunk = int(total_length / chunk_size)
             current_chunk = 0
-            for chunk in res.iter_content(chunk_size=chunk_size): 
+            for chunk in res.iter_content(chunk_size=chunk_size):
                 if chunk:
-                    current_chunk=current_chunk+1
+                    current_chunk = current_chunk + 1
                     f.write(chunk)
                     f.flush()
         return 200
 
     def download_thread(self):
         print(self.accessToken)
-        #self.downloadProgress.setValue(0)
-        url = base_url + '/backend/pythonProgrammer/getHashSigningKey'
-        headers={'authorization': 'Bearer ' + self.accessToken, 'torqctrlid': str(self.trackerSelected["torqCtrlId"])}	
+        # self.downloadProgress.setValue(0)
+        url = base_url + "/backend/pythonProgrammer/getHashSigningKey"
+        headers = {
+            "authorization": "Bearer " + self.accessToken,
+            "torqctrlid": str(self.trackerSelected["torqCtrlId"]),
+        }
 
         self.downloadProgress.setValue(0)
         self.labelDownloadContent.setText("In progress ..")
@@ -1108,31 +1262,37 @@ class ManageSerialLayout(QVBoxLayout):
         self.activate()
 
         try:
-            res = requests.get(url, headers = headers, timeout=5)
+            res = requests.get(url, headers=headers, timeout=5)
             res = res.json()
             print(res)
-            if (res["status"] != 200):
+            if res["status"] != 200:
                 self.labelDownloadContent.setText(res["message"])
                 return
-            
-            self.signHashKey = (base64.b64decode(res["hashkey_b64"]))
+
+            self.signHashKey = base64.b64decode(res["hashkey_b64"])
             self.signHashKeyReady = True
             self.activate()
-            #self.downloadProgress.setValue(10)
+            # self.downloadProgress.setValue(10)
 
-            st_bootloader = self.download_and_store('/backend/pythonProgrammer/getBootloader', './bootloader_tmp')
+            st_bootloader = self.download_and_store(
+                "/backend/pythonProgrammer/getBootloader", "./bootloader_tmp"
+            )
             if not st_bootloader:
                 return
             self.signedBootloaderReady = True
             self.downloadProgress.setValue(20)
             self.activate()
-            st_parttable = self.download_and_store('/backend/pythonProgrammer/getPartTable', './part_table_tmp')
+            st_parttable = self.download_and_store(
+                "/backend/pythonProgrammer/getPartTable", "./part_table_tmp"
+            )
             if not st_parttable:
                 return
             self.partTableReady = True
             self.downloadProgress.setValue(40)
             self.activate()
-            st_signedfirmware = self.download_and_store('/backend/pythonProgrammer/getSignedFirmware', './firmware_tmp')
+            st_signedfirmware = self.download_and_store(
+                "/backend/pythonProgrammer/getSignedFirmware", "./firmware_tmp"
+            )
             if not st_signedfirmware:
                 return
             self.signedFirmwareReady = True
@@ -1146,19 +1306,15 @@ class ManageSerialLayout(QVBoxLayout):
         self.notCurrentlyInDownload = True
         self.activate()
 
-
     def click_downloadContent(self):
         print("Download Content")
-        
 
         x = threading.Thread(target=self.download_thread)
         x.start()
 
-
-
     def click_testSerialConnection(self):
         print("test serial")
-        
+
         self.serialConnected = True
         self.activate()
         self.esp = self.get_default_connected_device(
@@ -1170,26 +1326,32 @@ class ManageSerialLayout(QVBoxLayout):
             trace=False,
             before="default_reset",
         )
-        if (self.esp is not None):
+        if self.esp is not None:
             mac = self.esp.read_mac()
             desc = self.esp.get_chip_description()
             flash_infos = self.flash_id(self.esp)
             major_rev = self.esp.get_major_chip_version()
             print(mac)
-            self.labelMacAddr.setText("MAC Addr: "+str(mac))
+            self.labelMacAddr.setText("MAC Addr: " + str(mac))
             self.efuse = self.get_efuses(self.esp)
-            self.absDoneStatus.setText("secure boot ok: " + str(self.is_abs_done_fuse_ok()))
+            self.absDoneStatus.setText(
+                "secure boot ok: " + str(self.is_abs_done_fuse_ok())
+            )
             print(self.efuse)
-            if (self.is_the_same_block2() == 1):
+            if self.is_the_same_block2() == 1:
                 self.burnHashKeyStatusLabel.setText("Already Burned (same)")
                 self.alreadyBurnSame = True
                 self.activate()
-            elif (self.is_the_same_block2() == 0):
-                self.burnHashKeyStatusLabel.setText("Already Burned (not the same)")
+            elif self.is_the_same_block2() == 0:
+                self.burnHashKeyStatusLabel.setText(
+                    "Already Burned (not the same)"
+                )
                 self.compareBurnKeys = True
                 self.activate()
-            elif (self.is_the_same_block2() == -2):
-                self.burnHashKeyStatusLabel.setText("Error, try download content button")
+            elif self.is_the_same_block2() == -2:
+                self.burnHashKeyStatusLabel.setText(
+                    "Error, try download content button"
+                )
             else:
                 self.burnHashKeyStatusLabel.setText("Not burned")
 
@@ -1198,46 +1360,68 @@ class ManageSerialLayout(QVBoxLayout):
             print((self.efuse[0].blocks[2].bitarray))
 
     def click_burnSignHashKey(self):
-        if (not self.compareBurnKeys):
+        if not self.compareBurnKeys:
             try:
                 print("burn hash key")
                 self.burnProgress.setValue(0)
                 self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
                 self.burnProgress.setValue(50)
                 time.sleep(0.25)
-                self.burn_key(self.esp, self.efuse[0], "secure_boot_v2", self.signHashKey, True, None)
+                self.burn_key(
+                    self.esp,
+                    self.efuse[0],
+                    "secure_boot_v2",
+                    self.signHashKey,
+                    True,
+                    None,
+                )
                 self.burnProgress.setValue(100)
                 self.burnHashKeyStatusLabel.setText("Burned !")
                 time.sleep(0.25)
                 self.efuse = self.get_efuses(self.esp)
-                self.absDoneStatus.setText("secure boot ok: "+str(self.is_abs_done_fuse_ok()))
-                if (self.is_the_same_block2() != 1):
+                self.absDoneStatus.setText(
+                    "secure boot ok: " + str(self.is_abs_done_fuse_ok())
+                )
+                if self.is_the_same_block2() != 1:
                     self.burnHashKeyStatusLabel.setText("Burn key failed !!")
             except:
                 print("ERROR : can't burn now !")
         else:
             print("compare keys")
 
-
     def click_partTable_bootloader_flash(self):
         print("part table and bootloader flash")
 
         part_table = open("./part_table_tmp", "rb")
         bootloader = open("./bootloader_tmp", "rb")
-        self.bootloaderPartTableFlashStatusLabel.setText("Flashing in progress")
+        self.bootloaderPartTableFlashStatusLabel.setText(
+            "Flashing in progress"
+        )
 
-
-        #Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
-        #flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
-        args = {'chip':'esp32', 'compress':None, 'flash_mode':'dio', 'flash_freq':'80m', 'no_compress':False, 'force':True, 'addr_filename':[(94208, part_table),(4096, bootloader)], 'encrypt':None, 'encrypt_files':None, 'ignore_flash_encryption_efuse_setting':None, 'flash_size':'4MB', 'erase_all':False, 'no_stub':False, 'verify':None}
+        # Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
+        # flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
+        args = {
+            "chip": "esp32",
+            "compress": None,
+            "flash_mode": "dio",
+            "flash_freq": "80m",
+            "no_compress": False,
+            "force": True,
+            "addr_filename": [(94208, part_table), (4096, bootloader)],
+            "encrypt": None,
+            "encrypt_files": None,
+            "ignore_flash_encryption_efuse_setting": None,
+            "flash_size": "4MB",
+            "erase_all": False,
+            "no_stub": False,
+            "verify": None,
+        }
         args = Dict2Class(args)
         print(args)
-        
-        if (not self.esp.IS_STUB):
+
+        if not self.esp.IS_STUB:
             self.esp = self.esp.run_stub()
         self.write_flash(self.esp, args, self.bootloaderPartTableFlashProgress)
-
-
 
         self.bootloaderPartTableFlashStatusLabel.setText("flashed !")
 
@@ -1264,7 +1448,9 @@ class ManageSerialLayout(QVBoxLayout):
 
             inPartTableDesc = False
 
-            with serial.Serial(self.selectedSerialPort, 115200, timeout=1) as ser:
+            with serial.Serial(
+                self.selectedSerialPort, 115200, timeout=1
+            ) as ser:
                 for i in range(73):
                     try:
                         x = ser.readline().decode()
@@ -1273,54 +1459,94 @@ class ManageSerialLayout(QVBoxLayout):
                             print("VERSION NUMBER")
                             print(x)
 
-                            infosAboutTracker["VERSION_NUMBER"] = (x.split("VERSION_NUMBER :")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["VERSION_NUMBER"] = (
+                                x.split("VERSION_NUMBER :")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "AES128_KEY" in x:
-                            infosAboutTracker["AES128_KEY"] = (x.split("AES128_KEY :")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["AES128_KEY"] = (
+                                x.split("AES128_KEY :")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "DEBUG :" in x:
-                            infosAboutTracker["DEBUG"].append((x.split("DEBUG :")[-1].lstrip()).split("\x1b")[0])
+                            infosAboutTracker["DEBUG"].append(
+                                (x.split("DEBUG :")[-1].lstrip()).split(
+                                    "\x1b"
+                                )[0]
+                            )
                         if "REAL_COMPILATION_TIME" in x:
-                            infosAboutTracker["REAL_COMPILATION_TIME"] = (x.split("REAL_COMPILATION_TIME :")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["REAL_COMPILATION_TIME"] = (
+                                x.split("REAL_COMPILATION_TIME :")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "WIFI_BACKUP_SSID" in x:
-                            infosAboutTracker["WIFI_BACKUP_SSID"] = (x.split("WIFI_BACKUP_SSID :")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["WIFI_BACKUP_SSID"] = (
+                                x.split("WIFI_BACKUP_SSID :")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "TRACKER_GPS_ID" in x:
-                            infosAboutTracker["TRACKER_GPS_ID"] = (x.split("TRACKER_GPS_ID :")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["TRACKER_GPS_ID"] = (
+                                x.split("TRACKER_GPS_ID :")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "MODE" in x:
-                            infosAboutTracker["MODE"] = (x.split("MODE :")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["MODE"] = (
+                                x.split("MODE :")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "secure boot v2 enabled" in x:
-                            infosAboutTracker["secureBootV2EnabledBootloader"] = True
+                            infosAboutTracker[
+                                "secureBootV2EnabledBootloader"
+                            ] = True
                         if "secure boot verification succeeded" in x:
-                            infosAboutTracker["secureBootV2CheckOKBootloader"] = True
+                            infosAboutTracker[
+                                "secureBootV2CheckOKBootloader"
+                            ] = True
                         if "Compile time:" in x:
-                            infosAboutTracker["appCompileTime"] = (x.split("Compile time:")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["appCompileTime"] = (
+                                x.split("Compile time:")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "Project name:" in x:
-                            infosAboutTracker["projectName"] = (x.split("Project name:")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["projectName"] = (
+                                x.split("Project name:")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "App version:" in x:
-                            infosAboutTracker["appVersion"] = (x.split("App version:")[-1].lstrip()).split("\x1b")[0]
+                            infosAboutTracker["appVersion"] = (
+                                x.split("App version:")[-1].lstrip()
+                            ).split("\x1b")[0]
                         if "secure_boot_v2: Verifying with RSA-PSS" in x:
-                            infosAboutTracker["secureBootV2EnabledBootloaderStage2"] = True
-                        if "secure_boot_v2: Signature verified successfully!" in x:
-                            infosAboutTracker["secureBootV2CheckOKFirmware"] = True
+                            infosAboutTracker[
+                                "secureBootV2EnabledBootloaderStage2"
+                            ] = True
+                        if (
+                            "secure_boot_v2: Signature verified successfully!"
+                            in x
+                        ):
+                            infosAboutTracker[
+                                "secureBootV2CheckOKFirmware"
+                            ] = True
                         if "Partition Table:" in x:
                             inPartTableDesc = True
                         if "End of partition table" in x:
                             inPartTableDesc = False
                         if inPartTableDesc:
-                            #['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
+                            # ['(74)', 'boot:', '##', 'Label', 'Usage', 'Type', 'ST', 'Offset']
                             #
-                            arr = [b for b in x.split(" ") if b != "" and not "\x1b" in b and not "boot:" in b and not "(" in b]
+                            arr = [
+                                b
+                                for b in x.split(" ")
+                                if b != ""
+                                and not "\x1b" in b
+                                and not "boot:" in b
+                                and not "(" in b
+                            ]
                             if arr[0].isnumeric():
                                 infosAboutTracker["partTableDesc"].append(arr)
                     except:
-                        infosAboutTracker["error"] = "Can't read serial port (maybe already open by another software ?)"
+                        infosAboutTracker["error"] = (
+                            "Can't read serial port (maybe already open by another software ?)"
+                        )
                         self.resultTestLayout.setInfosText(infosAboutTracker)
-                        print("Can't read serial port (maybe already open by another software ?)")
+                        print(
+                            "Can't read serial port (maybe already open by another software ?)"
+                        )
             self.resultTestLayout.setInfosText(infosAboutTracker)
         except:
             print("ERROR : error on booting ESP")
-
-
-
-
 
     def click_appFlash(self):
         try:
@@ -1328,14 +1554,27 @@ class ManageSerialLayout(QVBoxLayout):
             firmware = open("./firmware_tmp", "rb")
             self.appFlashStatusLabel.setText("Flashed")
 
-
-            #Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
-            #flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
-            args = {'compress':None, 'flash_mode':'dio', 'flash_freq':'80m', 'no_compress':False, 'force':False, 'addr_filename':[(131072, firmware)], 'encrypt':None, 'encrypt_files':None, 'ignore_flash_encryption_efuse_setting':None, 'flash_size':'4MB', 'erase_all':False, 'no_stub':False, 'verify':None}
+            # Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
+            # flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
+            args = {
+                "compress": None,
+                "flash_mode": "dio",
+                "flash_freq": "80m",
+                "no_compress": False,
+                "force": False,
+                "addr_filename": [(131072, firmware)],
+                "encrypt": None,
+                "encrypt_files": None,
+                "ignore_flash_encryption_efuse_setting": None,
+                "flash_size": "4MB",
+                "erase_all": False,
+                "no_stub": False,
+                "verify": None,
+            }
             args = Dict2Class(args)
             print(args)
 
-            if (not self.esp.IS_STUB):
+            if not self.esp.IS_STUB:
                 self.esp = self.esp.run_stub()
 
             self.write_flash(self.esp, args, self.appFlashProgress)
@@ -1349,27 +1588,40 @@ class ManageSerialLayout(QVBoxLayout):
         self.activate()
 
     def activate(self):
-        self.downloadContentBtn.setEnabled(self.activ and self.notCurrentlyInDownload)
+        self.downloadContentBtn.setEnabled(
+            self.activ and self.notCurrentlyInDownload
+        )
 
-        if (self.selectedSerialPort == None or self.selectedSerialPort == False):
+        if self.selectedSerialPort == None or self.selectedSerialPort == False:
             isPortSelected = False
         else:
             isPortSelected = True
 
         print(self.selectedSerialPort)
-            
+
         self.testSerialBtn.setEnabled(self.activ and isPortSelected)
-        self.burnHashSignKeyBtn.setEnabled(self.serialConnected and self.signHashKeyReady and isPortSelected and not self.alreadyBurnSame)
-        self.appFlashBtn.setEnabled(self.serialConnected and self.signedFirmwareReady and isPortSelected)
-        self.bootloaderPartTableFlashBtn.setEnabled(self.serialConnected and self.signedBootloaderReady and self.partTableReady and isPortSelected)
+        self.burnHashSignKeyBtn.setEnabled(
+            self.serialConnected
+            and self.signHashKeyReady
+            and isPortSelected
+            and not self.alreadyBurnSame
+        )
+        self.appFlashBtn.setEnabled(
+            self.serialConnected
+            and self.signedFirmwareReady
+            and isPortSelected
+        )
+        self.bootloaderPartTableFlashBtn.setEnabled(
+            self.serialConnected
+            and self.signedBootloaderReady
+            and self.partTableReady
+            and isPortSelected
+        )
         self.resetHardBtn.setEnabled(self.serialConnected and isPortSelected)
-        
-        if (self.compareBurnKeys):
+
+        if self.compareBurnKeys:
             self.burnHashSignKeyBtn.setEnabled(True)
             self.burnHashSignKeyBtn.setText("Compare keys")
-
-
-
 
     def resetAll(self):
         self.appFlashProgress.setValue(0)
@@ -1395,13 +1647,12 @@ class ManageSerialLayout(QVBoxLayout):
         self.resultTestLayout.resetLayout()
         self.activate()
 
-
     def setSelectedTracker(self, tracker):
         print(tracker)
         self.resetAll()
         self.serialConnected = False
         self.trackerSelected = tracker
-        if (self.trackerSelected is None):
+        if self.trackerSelected is None:
             self.activ = False
             self.activate()
             return
@@ -1409,10 +1660,9 @@ class ManageSerialLayout(QVBoxLayout):
         self.activ = True
         self.activate()
 
-
     def __init__(self, accessToken, resultTestLayout):
         super(ManageSerialLayout, self).__init__()
-        
+
         self.resultTestLayout = resultTestLayout
         self.accessToken = accessToken
         self.signedFirmwareReady = False
@@ -1428,7 +1678,6 @@ class ManageSerialLayout(QVBoxLayout):
 
         SerialLayout = QVBoxLayout()
 
-
         ###### DOWNLOAD CONTENT ######
         DownloadContentVLayout = QVBoxLayout()
 
@@ -1442,14 +1691,11 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.labelDownloadContent = QLabel("Not downloaded")
 
-        
-
         DownloadContentLayout.addWidget(self.downloadContentBtn)
         DownloadContentLayout.addWidget(self.labelDownloadContent)
         DownloadContentVLayout.addLayout(DownloadContentLayout)
         DownloadContentVLayout.addWidget(self.downloadProgress)
         SerialLayout.addLayout(DownloadContentVLayout)
-
 
         ###### TEST SERIAL CONNECTION ######
         SerialTestLayout = QHBoxLayout()
@@ -1457,22 +1703,19 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.testSerialBtn = QPushButton()
         self.testSerialBtn.setText("Test Serial Connection")
-        #testSerialBtn.move(64,32)
+        # testSerialBtn.move(64,32)
         self.testSerialBtn.clicked.connect(self.click_testSerialConnection)
 
         self.labelTestSerial = QLabel("Not connected")
 
-
         self.absDoneStatus = QLabel("secure boot ok: Not checked")
         self.labelMacAddr = QLabel("MAC Addr: ")
-
 
         SerialTestLayout.addWidget(self.testSerialBtn)
         SerialTestLayout.addWidget(self.labelTestSerial)
         SerialTestVLayout.addLayout(SerialTestLayout)
         SerialTestVLayout.addWidget(self.absDoneStatus)
         SerialTestVLayout.addWidget(self.labelMacAddr)
-
 
         SerialLayout.addLayout(SerialTestVLayout)
 
@@ -1483,11 +1726,10 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.burnHashSignKeyBtn = QPushButton()
         self.burnHashSignKeyBtn.setText("Burn Sign Hash Key")
-        #testSerialBtn.move(64,32)
+        # testSerialBtn.move(64,32)
         self.burnHashSignKeyBtn.clicked.connect(self.click_burnSignHashKey)
 
         self.burnProgress = QProgressBar()
-
 
         self.burnHashKeyStatusLabel = QLabel("Not burned")
 
@@ -1498,27 +1740,36 @@ class ManageSerialLayout(QVBoxLayout):
 
         SerialLayout.addLayout(SerialBurnKeyVLayout)
 
-
-
-
         ###### Bootloader and part table ######
         SerialBootloaderPartTableFlashVLayout = QVBoxLayout()
 
         SerialBootloaderPartTableFlashLayout = QHBoxLayout()
 
         self.bootloaderPartTableFlashBtn = QPushButton()
-        self.bootloaderPartTableFlashBtn.setText("Flash Bootloader and part table")
-        #testSerialBtn.move(64,32)
-        self.bootloaderPartTableFlashBtn.clicked.connect(self.click_partTable_bootloader_flash)
+        self.bootloaderPartTableFlashBtn.setText(
+            "Flash Bootloader and part table"
+        )
+        # testSerialBtn.move(64,32)
+        self.bootloaderPartTableFlashBtn.clicked.connect(
+            self.click_partTable_bootloader_flash
+        )
 
         self.bootloaderPartTableFlashProgress = QProgressBar()
 
         self.bootloaderPartTableFlashStatusLabel = QLabel("Not flashed")
 
-        SerialBootloaderPartTableFlashLayout.addWidget(self.bootloaderPartTableFlashBtn)
-        SerialBootloaderPartTableFlashLayout.addWidget(self.bootloaderPartTableFlashStatusLabel)
-        SerialBootloaderPartTableFlashVLayout.addLayout(SerialBootloaderPartTableFlashLayout)
-        SerialBootloaderPartTableFlashVLayout.addWidget(self.bootloaderPartTableFlashProgress)
+        SerialBootloaderPartTableFlashLayout.addWidget(
+            self.bootloaderPartTableFlashBtn
+        )
+        SerialBootloaderPartTableFlashLayout.addWidget(
+            self.bootloaderPartTableFlashStatusLabel
+        )
+        SerialBootloaderPartTableFlashVLayout.addLayout(
+            SerialBootloaderPartTableFlashLayout
+        )
+        SerialBootloaderPartTableFlashVLayout.addWidget(
+            self.bootloaderPartTableFlashProgress
+        )
 
         SerialLayout.addLayout(SerialBootloaderPartTableFlashVLayout)
 
@@ -1529,14 +1780,12 @@ class ManageSerialLayout(QVBoxLayout):
 
         self.appFlashBtn = QPushButton()
         self.appFlashBtn.setText("Flash App")
-        #testSerialBtn.move(64,32)
+        # testSerialBtn.move(64,32)
         self.appFlashBtn.clicked.connect(self.click_appFlash)
 
         self.appFlashProgress = QProgressBar()
 
-
         self.appFlashStatusLabel = QLabel("No app flashed")
-
 
         SerialAppFlashLayout.addWidget(self.appFlashBtn)
         SerialAppFlashLayout.addWidget(self.appFlashStatusLabel)
@@ -1545,20 +1794,16 @@ class ManageSerialLayout(QVBoxLayout):
 
         SerialLayout.addLayout(SerialAppFlashVLayout)
 
-
         ###### Reset ESP ######
         SerialResetHardLayout = QHBoxLayout()
 
         self.resetHardBtn = QPushButton()
         self.resetHardBtn.setText("Restart ESP32 and obtain boot info")
-        #testSerialBtn.move(64,32)
+        # testSerialBtn.move(64,32)
         self.resetHardBtn.clicked.connect(self.click_resetHard)
 
         SerialResetHardLayout.addWidget(self.resetHardBtn)
         SerialLayout.addLayout(SerialResetHardLayout)
-
-
-
 
         self.addLayout(SerialLayout)
         self.setSelectedTracker(None)
@@ -1575,24 +1820,28 @@ class SerialCP2102Layout(QVBoxLayout):
         self.SerialPortsReady = []
         myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
         for port in myports:
-            if (port[1].__contains__("CP2102")):
-                print("a port seems usable for programming : "+ port[0])
+            if port[1].__contains__("CP2102"):
+                print("a port seems usable for programming : " + port[0])
                 self.serialPortsComboBox.addItems([port[0]])
                 self.SerialPortsReady.append(port[0])
-        if (len(myports) == 0):
-            print("No port ready for programming, please check port connection")
+        if len(myports) == 0:
+            print(
+                "No port ready for programming, please check port connection"
+            )
 
     def click_connectProgrammer(self):
-        if (self.serialPortsComboBox.currentIndex()<0):
+        if self.serialPortsComboBox.currentIndex() < 0:
             self.SelectedSerialPort = None
             print("Selected Serial port : None")
             return
-        self.SelectedSerialPort = self.SerialPortsReady[self.serialPortsComboBox.currentIndex()]
+        self.SelectedSerialPort = self.SerialPortsReady[
+            self.serialPortsComboBox.currentIndex()
+        ]
         print("debug victor")
         print(self.serialPortsComboBox.currentIndex())
         print(self.SerialPortsReady)
 
-        print("Selected Serial port : "+str(self.SelectedSerialPort))
+        print("Selected Serial port : " + str(self.SelectedSerialPort))
         self.SerialLayout.specifySelectedPort(self.SelectedSerialPort)
 
     def __init__(self, serialLayout):
@@ -1622,6 +1871,7 @@ class SerialCP2102Layout(QVBoxLayout):
         self.addLayout(serialCP2102Layout)
         self.click_refreshSerialList()
 
+
 class MainWindow(QDialog):
 
     def __init__(self, accessToken):
@@ -1639,7 +1889,6 @@ class MainWindow(QDialog):
 
         manageSerialLayout = QVBoxLayout()
 
-
         frame3 = QFrame()
         frame3.setFrameShape(QFrame.Shape.StyledPanel)
         frame3.setLineWidth(3)
@@ -1654,36 +1903,30 @@ class MainWindow(QDialog):
         serialCP2102Layout = SerialCP2102Layout(SerialLayout)
         TrackerLayout = SelectTrackerLayout(self.accessToken, SerialLayout)
 
-
-
         frame3.setLayout(TrackerLayout)
         frame4.setLayout(serialCP2102Layout)
 
         selectTrackerLayout.addWidget(frame3)
         selectTrackerLayout.addWidget(frame4)
 
-
-
-
-
         frame = QFrame()
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         frame.setLineWidth(3)
-        
-        
-        #SerialLayout.setSelectedTracker(10)
+
+        # SerialLayout.setSelectedTracker(10)
 
         frame.setLayout(SerialLayout)
 
         manageSerialLayout.addWidget(frame)
 
-        outerLayout.addLayout( selectTrackerLayout )
+        outerLayout.addLayout(selectTrackerLayout)
         outerLayout.addWidget(QLabel("=>"))
-        outerLayout.addLayout( manageSerialLayout )
+        outerLayout.addLayout(manageSerialLayout)
         outerLayout.addWidget(QLabel("=>"))
-        outerLayout.addLayout( resultTestLayout )
+        outerLayout.addLayout(resultTestLayout)
 
         self.setLayout(outerLayout)
+
 
 class ConnectWindow(QDialog):
 
@@ -1699,7 +1942,6 @@ class ConnectWindow(QDialog):
 
         # calling the method that create the form
         self.createConnexionForm()
-    
 
     def createConnexionForm(self):
 
@@ -1708,13 +1950,13 @@ class ConnectWindow(QDialog):
 
         # creating a line edit for email connexion
         self.emailLineEdit = QLineEdit()
-        self.emailLineEdit.setText("victor.chevillotte@gmail.com") 
-        #self.emailLineEdit.setFixedSize(350,40)
+        self.emailLineEdit.setText("victor.chevillotte@gmail.com")
+        # self.emailLineEdit.setFixedSize(350,40)
 
         # creating a line edit for password connexion
         self.passwordLineEdit = QLineEdit()
         self.passwordLineEdit.setEchoMode(QLineEdit.EchoMode.Password)
-        #self.passwordLineEdit.setFixedSize(350,40)
+        # self.passwordLineEdit.setFixedSize(350,40)
 
         # creating a form layout
         self.loginLayout = QFormLayout()
@@ -1730,7 +1972,9 @@ class ConnectWindow(QDialog):
         self.connexionGroupBox.setLayout(self.loginLayout)
 
         # creating a dialog button for ok and cancel
-        self.connexionButtonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        self.connexionButtonBox = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+        )
 
         # adding action when form is accepted
         self.connexionButtonBox.accepted.connect(self.connectToWebsite)
@@ -1750,65 +1994,75 @@ class ConnectWindow(QDialog):
         # setting lay out
         self.setLayout(self.mainLayout)
 
-
     def checkUserRightToUsePogrammer(self):
-        url = base_url + '/backend/pythonProgrammer/getTorqeedoControllersList'
-        headers={'authorization': 'Bearer ' + self.accessToken}	
-        res = requests.get(url, headers = headers, timeout=5)
+        url = base_url + "/backend/pythonProgrammer/getTorqeedoControllersList"
+        headers = {"authorization": "Bearer " + self.accessToken}
+        res = requests.get(url, headers=headers, timeout=5)
         return res.json()
-    
 
     def connectToWebsite(self):
-        #method to connect to the website
-        url = base_url + '/frontend/account/login'
-        params = {'email': self.emailLineEdit.text(), 'password': self.passwordLineEdit.text(), 'remember': 'true'}
+        # method to connect to the website
+        url = base_url + "/frontend/account/login"
+        params = {
+            "email": self.emailLineEdit.text(),
+            "password": self.passwordLineEdit.text(),
+            "remember": "true",
+        }
 
         try:
-            res = requests.post(url, json = params)
-            if(res.status_code != 200):
-                if(hasattr(self, 'connexionError')):
-                    self.connexionError.setText("Echec de la requête avec le serveur (status!=200)")
+            res = requests.post(url, json=params)
+            if res.status_code != 200:
+                if hasattr(self, "connexionError"):
+                    self.connexionError.setText(
+                        "Echec de la requête avec le serveur (status!=200)"
+                    )
                 else:
-                    self.connexionError = QLabel("Echec de la requête avec le serveur (status!=200)")
+                    self.connexionError = QLabel(
+                        "Echec de la requête avec le serveur (status!=200)"
+                    )
                     self.loginLayout.addRow(self.connexionError)
                 return
             res = res.json()
 
-            if(res['status'] == 200):
-                self.user = res['user']
-                self.accessToken = res['accessToken']
+            if res["status"] == 200:
+                self.user = res["user"]
+                self.accessToken = res["accessToken"]
                 print("res")
 
                 print(res)
 
                 resCheck = self.checkUserRightToUsePogrammer()
                 print(resCheck)
-                if resCheck["status"]!=200:
-                    if(hasattr(self, 'connexionError')):
-                        self.connexionError.setText(resCheck['message'])
+                if resCheck["status"] != 200:
+                    if hasattr(self, "connexionError"):
+                        self.connexionError.setText(resCheck["message"])
                     else:
-                        self.connexionError = QLabel(resCheck['message'])
+                        self.connexionError = QLabel(resCheck["message"])
                         self.loginLayout.addRow(self.connexionError)
                     return
-
-
 
                 self.mainWindow = MainWindow(self.accessToken)
                 self.mainWindow.show()
 
                 self.close()
             else:
-                if(hasattr(self, 'connexionError')):
-                    self.connexionError.setText(res['message'])
+                if hasattr(self, "connexionError"):
+                    self.connexionError.setText(res["message"])
                 else:
-                    self.connexionError = QLabel(res['message'])
+                    self.connexionError = QLabel(res["message"])
                     self.loginLayout.addRow(self.connexionError)
-        except:
+        except Exception as e:
+            print(e)
+
             print("can't connect to web server.")
-            if(hasattr(self, 'connexionError')):
-                self.connexionError.setText("Connexion au site internet impossible, verifier connexion internet")
+            if hasattr(self, "connexionError"):
+                self.connexionError.setText(
+                    "Connexion au site internet impossible, verifier connexion internet"
+                )
             else:
-                self.connexionError = QLabel("Connexion au site internet impossible, verifier connexion internet")
+                self.connexionError = QLabel(
+                    "Connexion au site internet impossible, verifier connexion internet"
+                )
                 self.loginLayout.addRow(self.connexionError)
 
 
@@ -1816,19 +2070,15 @@ import subprocess
 import sys
 
 
-#esptool.main(["write_flash", "--flash_mode", "dio" ,"--flash_freq", "80m", "--flash_size", "4MB", "0x20000", "firmware_tmp"])
+# esptool.main(["write_flash", "--flash_mode", "dio" ,"--flash_freq", "80m", "--flash_size", "4MB", "0x20000", "firmware_tmp"])
 
 # main method
-if __name__ == '__main__':
-    
+if __name__ == "__main__":
+
     app = QApplication(sys.argv)
     app.setStyleSheet("QWidget{font-size:20px;}")
-
-
 
     connectWindow = ConnectWindow()
     connectWindow.show()
 
-
     sys.exit(app.exec())
-    
