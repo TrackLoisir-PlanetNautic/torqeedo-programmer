@@ -3,9 +3,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QLabel,
 )
-from typing import Optional
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List
 from torqeedo_programmer import TorqeedoProgrammer
 
 
@@ -17,13 +16,12 @@ class CompilationResultWidget(QWidget):
         parent=None,
     ):
         super().__init__(parent)
-        self.compilation_result = torqeedo_programmer.compilation_result
         self.initUI()
 
     def initUI(self):
         layout = QVBoxLayout(self)
 
-        if self.compilation_result is None:
+        if self.torqeedo_programmer.compilation_result is None:
             # Affichage si aucune compilation n'a été effectuée
             layout.addWidget(QLabel("Click on Restart ESP32 for a result"))
         else:
@@ -61,10 +59,15 @@ class CompilationResultWidget(QWidget):
             for attr in attributes:
                 if attr == "partTableDesc":
                     value = checkPartTableArray(
-                        self, self.compilation_result.partTableDesc
+                        self,
+                        self.torqeedo_programmer.compilation_result.partTableDesc,
                     )
                 else:
-                    value = getattr(self.compilation_result, attr, "Non défini")
+                    value = getattr(
+                        self.torqeedo_programmer.compilation_result,
+                        attr,
+                        "Non défini",
+                    )
                 if isinstance(value, list):
                     value = ", ".join(value)
                 elif isinstance(value, bool):
