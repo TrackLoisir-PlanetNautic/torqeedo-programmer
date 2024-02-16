@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from compilation_result_widget import CompilationResultWidget
 from controller_selection_widget import ControllerSelectionWidget
+from serial_device_selection_widget import SerialDeviceSelectionWidget
 from torqeedo_programmer import TorqeedoProgrammer
 
 
@@ -33,8 +34,15 @@ class MainWindow(QMainWindow):
         leftLayout = QVBoxLayout()
         leftLayout.addWidget(QLabel("Sélection du Tracker"))
         # Utiliser le widget de sélection dans la colonne de gauche
-        selectionWidget = ControllerSelectionWidget(torqeedo_programmer)
-        leftLayout.addWidget(selectionWidget)
+        controller_device_selection_widget = ControllerSelectionWidget(
+            torqeedo_programmer
+        )
+        leftLayout.addWidget(controller_device_selection_widget)
+
+        serial_device_selection_widget = SerialDeviceSelectionWidget(
+            torqeedo_programmer
+        )
+        leftLayout.addWidget(serial_device_selection_widget)
 
         # Section centrale pour les réglages
         centerLayout = QVBoxLayout()
