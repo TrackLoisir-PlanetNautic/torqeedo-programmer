@@ -1,6 +1,10 @@
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDialog,
+)
 from login_window import LoginWindow
 from torqeedo_programmer import TorqeedoProgrammer
+from main_window import MainWindow
 
 
 def main():
@@ -22,7 +26,8 @@ def main():
             torqeedo_programmer = TorqeedoProgrammer(
                 api=api_instance, torqeedo_controllers=controllers
             )
-            print(torqeedo_programmer)
+            main_window = MainWindow(torqeedo_programmer)
+            main_window.show()  # Affiche la fenêtre principale
 
             # À partir d'ici, vous pouvez continuer à utiliser torqeedo_programmer pour votre logique d'application
             # Par exemple, afficher une nouvelle fenêtre avec les contrôleurs disponibles pour la sélection

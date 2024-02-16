@@ -1,22 +1,23 @@
 from PyQt6.QtWidgets import (
-    QApplication,
     QDialog,
     QVBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QMessageBox,
 )
 from PyQt6.QtCore import Qt
 from api import API
+from config_manager import ConfigManager
 
 
 class LoginWindow(QDialog):
     def __init__(self, api_url):
         super().__init__()
+        self.config_manager = ConfigManager()
         self.api_url = api_url
         self.api = None
         self.setupUi()
+        self.emailLineEdit.setText(self.config_manager.get_email())
 
     def setupUi(self):
         self.setWindowTitle("Connexion")
@@ -56,6 +57,7 @@ class LoginWindow(QDialog):
     def attempt_login(self):
         email = self.emailLineEdit.text()
         password = self.passwordLineEdit.text()
+        self.config_manager.set_email(email)
 
         self.api = API(base_url=self.api_url, email=email, password=password)
         try:
