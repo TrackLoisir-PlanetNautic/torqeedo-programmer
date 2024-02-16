@@ -1,3 +1,4 @@
+import asyncio
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -5,7 +6,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QCoreApplication, QEvent
 from api import API
 from config_manager import ConfigManager
 
@@ -55,20 +56,27 @@ class LoginWindow(QDialog):
         self.setLayout(layout)
 
     def attempt_login(self):
+        QCoreApplication.instance().postEvent(self, QEvent(QEvent.User))
         email = self.emailLineEdit.text()
         password = self.passwordLineEdit.text()
         self.config_manager.set_email(email)
+        self.loginButton.setText("Chargement...")
 
+        asyncio.create_task(self.async_attempt_login(email, password))
+
+    async def async_attempt_login(self, email, password):
         self.api = API(base_url=self.api_url, email=email, password=password)
         try:
-            self.api.connectToWebsite()
-            has_rights = self.api.check_user_rights_for_requests()
+            await self.api.connectToWebsite()
+            has_rights = await self.api.check_user_rights_for_requests()
             if has_rights:
                 self.accept()  # Ferme la fenêtre de dialogue avec un résultat positif
             else:
                 self.display_error("Vous n'avez pas les droits nécessaires.")
         except Exception as e:
             self.display_error(str(e))
+        finally:
+            self.loginButton.setText("Connexion")
 
     def display_error(self, message):
         # Affiche le message d'erreur dans la zone prévue à cet effet

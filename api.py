@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 import requests
 from torqeedo_controller import TorqeedoController
+import aiohttp
 
 
 class API(BaseModel):
@@ -17,40 +18,43 @@ class API(BaseModel):
     download_msg: str = ""
     signed_hash_key: bytes = None
 
-    def connectToWebsite(self):
-        url = self.base_url + "/frontend/account/login"
-        params = {
-            "email": self.email,
-            "password": self.password,
-            "remember": "true",
-        }
+    async def connectToWebsite(self):
+        async with aiohttp.ClientSession() as session:
+            url = self.base_url + "/frontend/account/login"
+            params = {
+                "email": self.email,
+                "password": self.password,
+                "remember": "true",
+            }
 
-        try:
-            res = requests.post(url, json=params)
-            res.raise_for_status()  # Cela va lever une exception si le code de statut HTTP n'est pas 200
-            data = res.json()
+            try:
+                async with session.post(url, json=params) as res:
+                    res.raise_for_status()  # Cela va lever une exception si le code de statut HTTP n'est pas 200
+                    data = await res.json()
 
-            if data["status"] == 200:
-                self.accessToken = data[
-                    "accessToken"
-                ]  # Sauvegarde du token d'authentification
-                print("Connexion réussie, token récupéré.")
-            else:
-                print(data)
-                raise Exception(
-                    f"Echec de la connexion : {data.get('message', 'Aucune erreur retournée')}"
+                    if data["status"] == 200:
+                        self.accessToken = data[
+                            "accessToken"
+                        ]  # Sauvegarde du token d'authentification
+                        print("Connexion réussie, token récupéré.")
+                    else:
+                        print(data)
+                        raise Exception(
+                            f"Echec de la connexion : {data.get('message', 'Aucune erreur retournée')}"
+                        )
+            except requests.RequestException as e:
+                raise Exception(f"Echec de la connexion: {e}")
+
+        async def check_user_rights_for_requests(self) -> bool:
+            async with aiohttp.ClientSession() as session:
+                url = (
+                    self.base_url
+                    + "/backend/pythonProgrammer/getTorqeedoControllersList"
                 )
-        except requests.RequestException as e:
-            raise Exception(f"Echec de la connexion: {e}")
-
-    def check_user_rights_for_requests(self) -> bool:
-        url = (
-            self.base_url
-            + "/backend/pythonProgrammer/getTorqeedoControllersList"
-        )
-        headers = {"authorization": "Bearer " + self.accessToken}
-        res = requests.get(url, headers=headers, timeout=5)
-        return res.json()
+                headers = {"authorization": "Bearer " + self.accessToken}
+                async with session.get(url, headers=headers) as res:
+                    data = await res.json()
+                    return data
 
     def getTorqeedoControllersList(self) -> List[TorqeedoController]:
         url = (
