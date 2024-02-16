@@ -18,3 +18,4 @@ class TorqeedoProgrammer(BaseModel):
     signedFirmwareReady: bool = False
 
     compilation_result: CompilationResult = None
+    selected_serial_port: str = None
