@@ -10,6 +10,12 @@ class API(BaseModel):
     email: str
     password: str
     accessToken: str = None
+    firmware_currently_downloading: bool = False
+    dl_signed_bootloader: bool = False
+    dl_part_table: bool = False
+    dl_signed_firmware: bool = False
+    download_msg: str = ""
+    signed_hash_key: bytes = None
 
     def connectToWebsite(self):
         url = self.base_url + "/frontend/account/login"
@@ -70,14 +76,15 @@ class API(BaseModel):
         except requests.RequestException as e:
             raise Exception(f"Request failed: {e}")
 
-    async def download_firmware(self, torqCtrlId: int):
-        if self.current_in_download:
+    async def download_firmware(self, torqCtrlId: str):
+        print("Downloading firmware")
+        if self.firmware_currently_downloading:
             return
-        self.current_in_download = True
+        self.firmware_currently_downloading = True
         url = self.base_url + "/backend/pythonProgrammer/getHashSigningKey"
         headers = {
             "authorization": "Bearer " + self.accessToken,
-            "torqctrlid": str(torqCtrlId),
+            "torqctrlid": torqCtrlId,
         }
 
         try:
@@ -86,47 +93,57 @@ class API(BaseModel):
             print(res)
             if res["status"] != 200:
                 self.download_msg = res["message"]
-                self.current_in_download = False
+                self.firmware_currently_downloading = False
                 return
 
-            self.signHashKey = base64.b64decode(res["hashkey_b64"])
+            self.signed_hash_key = base64.b64decode(res["hashkey_b64"])
+            print(self.signed_hash_key)
 
             st_bootloader = self.download_and_store(
-                "/backend/pythonProgrammer/getBootloader", "./bootloader_tmp"
+                "/backend/pythonProgrammer/getBootloader",
+                "./bootloader_tmp",
+                torqCtrlId,
             )
             if not st_bootloader:
-                self.current_in_download = False
+                self.firmware_currently_downloading = False
                 return
-            self.signedBootloaderReady = True
-
+            self.dl_signed_bootloader = True
+            print(self.dl_signed_bootloader)
             st_parttable = self.download_and_store(
-                "/backend/pythonProgrammer/getPartTable", "./part_table_tmp"
+                "/backend/pythonProgrammer/getPartTable",
+                "./part_table_tmp",
+                torqCtrlId,
             )
             if not st_parttable:
-                self.current_in_download = False
+                self.firmware_currently_downloading = False
                 return
-            self.partTableReady = True
+            self.dl_part_table = True
 
             st_signedfirmware = self.download_and_store(
-                "/backend/pythonProgrammer/getSignedFirmware", "./firmware_tmp"
+                "/backend/pythonProgrammer/getSignedFirmware",
+                "./firmware_tmp",
+                torqCtrlId,
             )
             if not st_signedfirmware:
-                self.current_in_download = False
+                self.firmware_currently_downloading = False
                 return
-            self.signedFirmwareReady = True
+            self.dl_signed_firmware = True
 
-        except Exception:
-            self.signedFirmwareReady = False
+        except Exception as e:
+            print(f"Error while downloading firmware: {e}")
+            self.dl_signed_firmware = False
             self.download_msg = "Download failed !"
 
-        self.current_in_download = False
+        self.firmware_currently_downloading = False
         self.download_msg = "Download finished successfully!"
 
-    def download_and_store(self, endpoint, store_path):
+    def download_and_store(
+        self, endpoint: str, store_path: str, torqCtrlId: str
+    ):
         url = self.base_url + endpoint
         headers = {
             "authorization": "Bearer " + self.accessToken,
-            "torqctrlid": str(self.trackerSelected["torqCtrlId"]),
+            "torqctrlid": torqCtrlId,
         }
         res = requests.get(url, headers=headers, timeout=5, stream=True)
         print(res)

@@ -1,3 +1,4 @@
+import asyncio
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -7,11 +8,13 @@ from torqeedo_programmer import TorqeedoProgrammer
 from main_window import MainWindow
 
 
-def main():
+async def main():
     app = QApplication([])
     app.setStyleSheet("QWidget{font-size:20px;}")
     api_url = "https://app.trackloisirs.com/api"
     login_window = LoginWindow(api_url)
+
+    loop = asyncio.get_running_loop()
 
     if login_window.exec() == QDialog.DialogCode.Accepted:
         # À ce stade, login_window.api contient une instance API configurée et connectée
@@ -36,8 +39,9 @@ def main():
                 f"Erreur lors de la récupération des contrôleurs Torqeedo : {e}"
             )
             # Gérez l'erreur (par exemple, affichez un message à l'utilisateur)
-    
 
 
-if __name__ == "__main__":
-    main()
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("Server stopped manually")

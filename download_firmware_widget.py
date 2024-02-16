@@ -35,6 +35,6 @@ class DownloadFirmwareWidget(QWidget):
     def start_download_firmware(self):
         asyncio.create_task(
             self.torqeedo_programmer.api.download_firmware(
-                self.torqeedo_programmer.selected_controller.torqCtrlId
+                str(self.torqeedo_programmer.selected_controller.torqCtrlId)
             )
         )
