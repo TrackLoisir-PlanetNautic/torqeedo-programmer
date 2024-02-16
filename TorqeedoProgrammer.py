@@ -287,10 +287,15 @@ class SelectTrackerLayout(QVBoxLayout):
         )  # Permet d'éditer si nécessaire, mais vous pourriez ne pas en avoir besoin
         self.torqeedoIdComboBox.addItems(self.filteredTorqeedoIdList)
 
+        self.refreshBtn = QPushButton()
+        self.refreshBtn.setText("Refresh Serial Ports")
+        self.refreshBtn.clicked.connect(self.click_refresh)
+
         # Ajout de QLineEdit et QComboBox au layout
         self.addWidget(self.searchLineEdit)
         self.addWidget(self.checkBoxNewtrackeronly)
         self.addWidget(self.torqeedoIdComboBox)
+        self.addWidget(self.refreshBtn)
         self.click_refresh()  # Appel initial pour remplir la liste
 
     def click_refresh(self):
@@ -308,6 +313,9 @@ class SelectTrackerLayout(QVBoxLayout):
             print(self.torqeedoIdList)
             self.torqeedoIdComboBox.addItems(
                 [item["kingwoId"] for item in self.torqeedoIdList]
+            )
+            self.filter(
+                self.checkBoxNewtrackeronlyState, self.trackerFilterText
             )
         else:
             if hasattr(self, "getTorqeedoIdError"):
