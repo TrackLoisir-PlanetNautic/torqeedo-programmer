@@ -265,7 +265,7 @@ class SelectTrackerLayout(QVBoxLayout):
         super(SelectTrackerLayout, self).__init__()
         self.accessToken = accessToken
         self.SerialManager = SerialManager
-        self.filteredTorqeedoIdList = ["Select"]
+        self.filteredTorqeedoTrackersList = []
 
         self.checkBoxNewtrackeronlyState = 0
         self.trackerFilterText = ""
@@ -279,16 +279,17 @@ class SelectTrackerLayout(QVBoxLayout):
         # Checkbox checkBoxNewtrackeronly
         self.checkBoxNewtrackeronly = QCheckBox("No ping only")
         self.checkBoxNewtrackeronly.stateChanged.connect(self.checkboxChanged)
+        self.checkBoxNewtrackeronly.
 
         # Configuration existante du QComboBox
         self.torqeedoIdComboBox = QComboBox()
-        self.torqeedoIdComboBox.setEditable(
-            True
-        )  # Permet d'éditer si nécessaire, mais vous pourriez ne pas en avoir besoin
-        self.torqeedoIdComboBox.addItems(self.filteredTorqeedoIdList)
+        self.torqeedoIdComboBox.setEditable(True)
+        self.torqeedoIdComboBox.currentIndexChanged.connect(
+            self.select_tracker
+        )
 
         self.refreshBtn = QPushButton()
-        self.refreshBtn.setText("Refresh Serial Ports")
+        self.refreshBtn.setText("Refresh list")
         self.refreshBtn.clicked.connect(self.click_refresh)
 
         # Ajout de QLineEdit et QComboBox au layout
@@ -309,7 +310,6 @@ class SelectTrackerLayout(QVBoxLayout):
         if res["status"] == 200:
             self.torqeedoIdList = res["data"]
             self.torqeedoIdComboBox.clear()
-            self.torqeedoIdComboBox.addItems(["Select"])
             print(self.torqeedoIdList)
             self.torqeedoIdComboBox.addItems(
                 [item["kingwoId"] for item in self.torqeedoIdList]
@@ -325,15 +325,14 @@ class SelectTrackerLayout(QVBoxLayout):
                 # self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
 
     def select_tracker(self, id):
-        print("Select ID")
-        print(id)
-        tracker = None
         if id > 0:
-            realid = int(id) - 1
-            print(realid)
-            tracker = self.torqeedoIdList[realid]
-
-        self.SerialManager.setSelectedTracker(tracker)
+            print("Selected tracker :")
+            print(id)
+            print(self.filteredTorqeedoTrackersList)
+            print(self.filteredTorqeedoTrackersList[id])
+            self.SerialManager.setSelectedTracker(
+                self.filteredTorqeedoTrackersList[id]
+            )
 
     def checkboxChanged(self, state):
         print("Checkbox changed")
@@ -341,39 +340,38 @@ class SelectTrackerLayout(QVBoxLayout):
         self.checkBoxNewtrackeronlyState = state
         self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
 
+
     def filterTrackers(self, text):
         self.trackerFilterText = text
         self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
 
     def filter(self, state, text):
         # Filtrage des trackers basé sur le texte saisi
-        localFilteredList = []
+        kingwoIdFilteredList = []
         if text == "":
-            localFilteredList = self.torqeedoIdList
+            kingwoIdFilteredList = self.torqeedoIdList
         else:
-            localFilteredList = [
-                item
-                for item in self.torqeedoIdList
-                if text.lower() in item["kingwoId"].lower()
-            ]
-
+            for item in self.torqeedoIdList:
+                if text.lower() in item["kingwoId"].lower():
+                    kingwoIdFilteredList.append(item)
+        finalFilteredList = []
         # Filtrage des trackers basé sur l'état de la case à cocher
         if state == 2:
             print("Filtering only new tracker")
-            filtered_list = [
-                i["kingwoId"]
-                for i in localFilteredList
-                if i["lastPing"] is None
-                or i["lastPing"] == "null"
-                or i["lastPing"] == ""
-                or i["lastPing"] == 0
-            ]
+            for i in kingwoIdFilteredList:
+                if (
+                    i["lastPing"] is None
+                    or i["lastPing"] == "null"
+                    or i["lastPing"] == ""
+                    or i["lastPing"] == 0
+                ):
+                    finalFilteredList.append(i)
         else:
-            print("Filtering all tracker")
-            filtered_list = [i["kingwoId"] for i in localFilteredList]
-
+            finalFilteredList = kingwoIdFilteredList
+        self.filteredTorqeedoTrackersList = finalFilteredList
         self.torqeedoIdComboBox.clear()
-        self.torqeedoIdComboBox.addItems(filtered_list)
+        filtered_id_list = [i["kingwoId"] for i in finalFilteredList]
+        self.torqeedoIdComboBox.addItems(filtered_id_list)
 
 
 def hexify(bitstring, separator=""):
@@ -1596,6 +1594,7 @@ class ManageSerialLayout(QVBoxLayout):
         self.activate()
 
     def activate(self):
+
         self.downloadContentBtn.setEnabled(
             self.activ and self.notCurrentlyInDownload
         )
@@ -1604,8 +1603,6 @@ class ManageSerialLayout(QVBoxLayout):
             isPortSelected = False
         else:
             isPortSelected = True
-
-        print(self.selectedSerialPort)
 
         self.testSerialBtn.setEnabled(self.activ and isPortSelected)
         self.burnHashSignKeyBtn.setEnabled(
@@ -1656,7 +1653,6 @@ class ManageSerialLayout(QVBoxLayout):
         self.activate()
 
     def setSelectedTracker(self, tracker):
-        print(tracker)
         self.resetAll()
         self.serialConnected = False
         self.trackerSelected = tracker
@@ -1664,7 +1660,6 @@ class ManageSerialLayout(QVBoxLayout):
             self.activ = False
             self.activate()
             return
-        print(self.trackerSelected["kingwoId"])
         self.activ = True
         self.activate()
 
@@ -1920,8 +1915,6 @@ class MainWindow(QDialog):
         frame = QFrame()
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         frame.setLineWidth(3)
-
-        # SerialLayout.setSelectedTracker(10)
 
         frame.setLayout(SerialLayout)
 
