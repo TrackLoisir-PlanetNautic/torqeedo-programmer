@@ -9,6 +9,7 @@ from main_window import MainWindow
 
 def main():
     app = QApplication([])
+    app.setStyleSheet("QWidget{font-size:20px;}")
     api_url = "https://app.trackloisirs.com/api"
     login_window = LoginWindow(api_url)
 

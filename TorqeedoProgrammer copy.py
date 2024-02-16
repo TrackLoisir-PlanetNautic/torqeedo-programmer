@@ -245,6 +245,129 @@ class Dict2Class(object):
             setattr(self, key, my_dict[key])
 
 
+class Color(QWidget):
+
+    def __init__(self, color):
+        super(Color, self).__init__()
+        self.setAutoFillBackground(True)
+
+        palette = self.palette()
+        palette.setColor(QPalette.Window, QColor(color))
+        self.setPalette(palette)
+
+
+class SelectTrackerLayout(QVBoxLayout):
+    def __init__(self, accessToken, SerialManager):
+        super(SelectTrackerLayout, self).__init__()
+        self.accessToken = accessToken
+        self.SerialManager = SerialManager
+        self.filteredTorqeedoTrackersList = []
+
+        self.checkBoxNewtrackeronlyState = 0
+        self.trackerFilterText = ""
+
+        # Initialisation de QLineEdit pour la recherche
+        self.searchLineEdit = QLineEdit()
+        self.searchLineEdit.setPlaceholderText("Type to filter...")
+        self.searchLineEdit.textChanged.connect(self.filterTrackers)
+        # Connexion du signal de changement de texte
+
+        # Checkbox checkBoxNewtrackeronly
+        self.checkBoxNewtrackeronly = QCheckBox("No ping only")
+        self.checkBoxNewtrackeronly.stateChanged.connect(self.checkboxChanged)
+
+        # Configuration existante du QComboBox
+        self.torqeedoIdComboBox = QComboBox()
+        self.torqeedoIdComboBox.setEditable(True)
+        self.torqeedoIdComboBox.currentIndexChanged.connect(
+            self.select_tracker
+        )
+
+        self.refreshBtn = QPushButton()
+        self.refreshBtn.setText("Refresh list")
+        self.refreshBtn.clicked.connect(self.click_refresh)
+
+        # Ajout de QLineEdit et QComboBox au layout
+        self.addWidget(self.searchLineEdit)
+        self.addWidget(self.checkBoxNewtrackeronly)
+        self.addWidget(self.torqeedoIdComboBox)
+        self.addWidget(self.refreshBtn)
+        self.click_refresh()  # Appel initial pour remplir la liste
+
+    def click_refresh(self):
+        print("Refresh list")
+        # request to get the torqeedo id list
+        url = base_url + "/backend/pythonProgrammer/getTorqeedoControllersList"
+        headers = {"authorization": "Bearer " + self.accessToken}
+        res = requests.get(url, headers=headers, timeout=5)
+        res = res.json()
+
+        if res["status"] == 200:
+            self.torqeedoIdList = res["data"]
+            self.torqeedoIdComboBox.clear()
+            print(self.torqeedoIdList)
+            self.torqeedoIdComboBox.addItems(
+                [item["kingwoId"] for item in self.torqeedoIdList]
+            )
+            self.filter(
+                self.checkBoxNewtrackeronlyState, self.trackerFilterText
+            )
+        else:
+            if hasattr(self, "getTorqeedoIdError"):
+                self.getTorqeedoIdError.setText(res["message"])
+            else:
+                self.getTorqeedoIdError = QLabel(res["message"])
+                # self.selectTorqeedoIdLayout.addRow(self.getTorqeedoIdError)
+
+    def select_tracker(self, id):
+        if id > 0:
+            print("Selected tracker :")
+            print(id)
+            print(self.filteredTorqeedoTrackersList)
+            print(self.filteredTorqeedoTrackersList[id])
+            self.SerialManager.setSelectedTracker(
+                self.filteredTorqeedoTrackersList[id]
+            )
+
+    def checkboxChanged(self, state):
+        print("Checkbox changed")
+        print(state)
+        self.checkBoxNewtrackeronlyState = state
+        self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
+
+    def filterTrackers(self, text):
+        self.trackerFilterText = text
+        self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
+
+    def filter(self, state, text):
+        # Filtrage des trackers basé sur le texte saisi
+        kingwoIdFilteredList = []
+        if text == "":
+            kingwoIdFilteredList = self.torqeedoIdList
+        else:
+            for item in self.torqeedoIdList:
+                if text.lower() in item["kingwoId"].lower():
+                    kingwoIdFilteredList.append(item)
+        finalFilteredList = []
+        # Filtrage des trackers basé sur l'état de la case à cocher
+        if state == 2:
+            print("Filtering only new tracker")
+            for i in kingwoIdFilteredList:
+                if (
+                    i["lastPing"] is None
+                    or i["lastPing"] == "null"
+                    or i["lastPing"] == ""
+                    or i["lastPing"] == 0
+                ):
+                    finalFilteredList.append(i)
+        else:
+            finalFilteredList = kingwoIdFilteredList
+        self.filteredTorqeedoTrackersList = finalFilteredList
+        self.torqeedoIdComboBox.clear()
+        filtered_id_list = [i["kingwoId"] for i in finalFilteredList]
+        self.torqeedoIdComboBox.addItems(filtered_id_list)
+
+
 def hexify(bitstring, separator=""):
     as_bytes = tuple(b for b in bitstring)
     return separator.join(("%02x" % b) for b in as_bytes)
@@ -1798,6 +1921,144 @@ class MainWindow(QDialog):
         outerLayout.addLayout(resultTestLayout)
 
         self.setLayout(outerLayout)
+
+
+class ConnectWindow(QDialog):
+
+    # constructor
+    def __init__(self):
+        super(ConnectWindow, self).__init__()
+
+        # setting window title
+        self.setWindowTitle("TorqeedoProgrammer")
+
+        # setting geometry to the window
+        self.setGeometry(100, 100, 500, 300)
+
+        # calling the method that create the form
+        self.createConnexionForm()
+
+    def createConnexionForm(self):
+
+        # creating a group box
+        self.connexionGroupBox = QGroupBox("Connexion")
+
+        # creating a line edit for email connexion
+        self.emailLineEdit = QLineEdit()
+        self.emailLineEdit.setText("victor.chevillotte@gmail.com")
+        # self.emailLineEdit.setFixedSize(350,40)
+
+        # creating a line edit for password connexion
+        self.passwordLineEdit = QLineEdit()
+        self.passwordLineEdit.setEchoMode(QLineEdit.EchoMode.Password)
+        # self.passwordLineEdit.setFixedSize(350,40)
+
+        # creating a form layout
+        self.loginLayout = QFormLayout()
+
+        # adding rows
+        # for email and adding input text
+        self.loginLayout.addRow(QLabel("Email"), self.emailLineEdit)
+
+        # for password and adding input text
+        self.loginLayout.addRow(QLabel("Password"), self.passwordLineEdit)
+
+        # setting layout
+        self.connexionGroupBox.setLayout(self.loginLayout)
+
+        # creating a dialog button for ok and cancel
+        self.connexionButtonBox = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+        )
+
+        # adding action when form is accepted
+        self.connexionButtonBox.accepted.connect(self.connectToWebsite)
+
+        # adding action when form is rejected
+        self.connexionButtonBox.rejected.connect(self.reject)
+
+        # creating a vertical layout
+        self.mainLayout = QVBoxLayout()
+
+        # adding form group box to the layout
+        self.mainLayout.addWidget(self.connexionGroupBox)
+
+        # adding button box to the layout
+        self.mainLayout.addWidget(self.connexionButtonBox)
+
+        # setting lay out
+        self.setLayout(self.mainLayout)
+
+    def checkUserRightToUsePogrammer(self):
+        url = base_url + "/backend/pythonProgrammer/getTorqeedoControllersList"
+        headers = {"authorization": "Bearer " + self.accessToken}
+        res = requests.get(url, headers=headers, timeout=5)
+        return res.json()
+
+    def connectToWebsite(self):
+        # method to connect to the website
+        url = base_url + "/frontend/account/login"
+        params = {
+            "email": self.emailLineEdit.text(),
+            "password": self.passwordLineEdit.text(),
+            "remember": "true",
+        }
+
+        try:
+            res = requests.post(url, json=params)
+            if res.status_code != 200:
+                if hasattr(self, "connexionError"):
+                    self.connexionError.setText(
+                        "Echec de la requête avec le serveur (status!=200)"
+                    )
+                else:
+                    self.connexionError = QLabel(
+                        "Echec de la requête avec le serveur (status!=200)"
+                    )
+                    self.loginLayout.addRow(self.connexionError)
+                return
+            res = res.json()
+
+            if res["status"] == 200:
+                self.user = res["user"]
+                self.accessToken = res["accessToken"]
+                print("res")
+
+                print(res)
+
+                resCheck = self.checkUserRightToUsePogrammer()
+                print(resCheck)
+                if resCheck["status"] != 200:
+                    if hasattr(self, "connexionError"):
+                        self.connexionError.setText(resCheck["message"])
+                    else:
+                        self.connexionError = QLabel(resCheck["message"])
+                        self.loginLayout.addRow(self.connexionError)
+                    return
+
+                self.mainWindow = MainWindow(self.accessToken)
+                self.mainWindow.show()
+
+                self.close()
+            else:
+                if hasattr(self, "connexionError"):
+                    self.connexionError.setText(res["message"])
+                else:
+                    self.connexionError = QLabel(res["message"])
+                    self.loginLayout.addRow(self.connexionError)
+        except Exception as e:
+            print(e)
+
+            print("can't connect to web server.")
+            if hasattr(self, "connexionError"):
+                self.connexionError.setText(
+                    "Connexion au site internet impossible, verifier connexion internet"
+                )
+            else:
+                self.connexionError = QLabel(
+                    "Connexion au site internet impossible, verifier connexion internet"
+                )
+                self.loginLayout.addRow(self.connexionError)
 
 
 import subprocess

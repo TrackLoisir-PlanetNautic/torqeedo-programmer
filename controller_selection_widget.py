@@ -6,10 +6,11 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
 )
+from torqeedo_programmer import TorqeedoProgrammer
 
 
 class ControllerSelectionWidget(QWidget):
-    def __init__(self, torqeedo_programmer, parent=None):
+    def __init__(self, torqeedo_programmer: TorqeedoProgrammer, parent=None):
         super().__init__(parent)
         self.torqeedo_programmer = torqeedo_programmer
         self.initUI()

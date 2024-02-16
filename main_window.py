@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QApplication,
 )
+from compilation_result_widget import CompilationResultWidget
 from controller_selection_widget import ControllerSelectionWidget
 from torqeedo_programmer import TorqeedoProgrammer
 
@@ -16,7 +17,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.torqeedo_programmer: TorqeedoProgrammer = torqeedo_programmer
         self.setWindowTitle("Torqeedo Programmer")
-        self.setGeometry(100, 100, 800, 600)  # Taille initiale de la fenêtre
+        self.setGeometry(100, 100, 1400, 800)  # Taille initiale de la fenêtre
         self.initUI(torqeedo_programmer)
 
     def initUI(self, torqeedo_programmer: TorqeedoProgrammer):
@@ -43,7 +44,11 @@ class MainWindow(QMainWindow):
         # Section de droite pour les résultats
         rightLayout = QVBoxLayout()
         rightLayout.addWidget(QLabel("Résultats"))
-        # Ajoutez ici vos éléments pour afficher les résultats...
+
+        compilation_result_widget = CompilationResultWidget(
+            torqeedo_programmer
+        )
+        rightLayout.addWidget(compilation_result_widget)
 
         # Ajout des layouts sectionnels au layout principal
         mainLayout.addLayout(leftLayout)
