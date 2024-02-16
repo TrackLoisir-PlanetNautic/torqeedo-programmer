@@ -27,16 +27,15 @@ def main():
                 api=api_instance, torqeedo_controllers=controllers
             )
             main_window = MainWindow(torqeedo_programmer)
-            main_window.show()  # Affiche la fenêtre principale
-
-            # À partir d'ici, vous pouvez continuer à utiliser torqeedo_programmer pour votre logique d'application
-            # Par exemple, afficher une nouvelle fenêtre avec les contrôleurs disponibles pour la sélection
+            main_window.show()
+            app.exec()
 
         except Exception as e:
             print(
                 f"Erreur lors de la récupération des contrôleurs Torqeedo : {e}"
             )
             # Gérez l'erreur (par exemple, affichez un message à l'utilisateur)
+    
 
 
 if __name__ == "__main__":

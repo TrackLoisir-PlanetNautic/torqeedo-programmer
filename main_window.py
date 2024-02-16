@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QApplication,
 )
+from controller_selection_widget import ControllerSelectionWidget
 from torqeedo_programmer import TorqeedoProgrammer
 
 
@@ -16,9 +17,10 @@ class MainWindow(QMainWindow):
         self.torqeedo_programmer: TorqeedoProgrammer = torqeedo_programmer
         self.setWindowTitle("Torqeedo Programmer")
         self.setGeometry(100, 100, 800, 600)  # Taille initiale de la fenêtre
-        self.initUI()
+        self.initUI(torqeedo_programmer)
 
-    def initUI(self):
+    def initUI(self, torqeedo_programmer: TorqeedoProgrammer):
+        print("Initialisation de l'interface utilisateur principale...")
         # Widget central qui contiendra tout le layout
         centralWidget = QWidget()
         self.setCentralWidget(centralWidget)
@@ -29,7 +31,9 @@ class MainWindow(QMainWindow):
         # Section de gauche pour la sélection du tracker
         leftLayout = QVBoxLayout()
         leftLayout.addWidget(QLabel("Sélection du Tracker"))
-        # Ajoutez ici vos éléments de sélection du tracker...
+        # Utiliser le widget de sélection dans la colonne de gauche
+        selectionWidget = ControllerSelectionWidget(torqeedo_programmer)
+        leftLayout.addWidget(selectionWidget)
 
         # Section centrale pour les réglages
         centerLayout = QVBoxLayout()

@@ -279,7 +279,6 @@ class SelectTrackerLayout(QVBoxLayout):
         # Checkbox checkBoxNewtrackeronly
         self.checkBoxNewtrackeronly = QCheckBox("No ping only")
         self.checkBoxNewtrackeronly.stateChanged.connect(self.checkboxChanged)
-        self.checkBoxNewtrackeronly.
 
         # Configuration existante du QComboBox
         self.torqeedoIdComboBox = QComboBox()
@@ -339,7 +338,6 @@ class SelectTrackerLayout(QVBoxLayout):
         print(state)
         self.checkBoxNewtrackeronlyState = state
         self.filter(self.checkBoxNewtrackeronlyState, self.trackerFilterText)
-
 
     def filterTrackers(self, text):
         self.trackerFilterText = text
