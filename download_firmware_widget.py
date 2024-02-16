@@ -4,6 +4,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QComboBox,
     QPushButton,
+    QProgressBar,
+    QLabel
 )
 from torqeedo_programmer import TorqeedoProgrammer
 import serial

@@ -10,12 +10,9 @@ from torqeedo_programmer import TorqeedoProgrammer
 
 # Widget pour afficher CompilationResult
 class CompilationResultWidget(QWidget):
-    def __init__(
-        self,
-        torqeedo_programmer: TorqeedoProgrammer,
-        parent=None,
-    ):
+    def __init__(self, torqeedo_programmer: TorqeedoProgrammer, parent=None):
         super().__init__(parent)
+        self.torqeedo_programmer = torqeedo_programmer
         self.initUI()
 
     def initUI(self):
