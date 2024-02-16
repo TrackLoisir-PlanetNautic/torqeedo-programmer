@@ -16,7 +16,6 @@ class SerialDeviceSelectionWidget(QWidget):
         self.initUI()
 
     def click_refreshSerialList(self):
-        print("refresh serial ports")
         self.serialPortsComboBox.clear()
         self.SerialPortsReady = []
         myports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
