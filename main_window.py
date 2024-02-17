@@ -4,8 +4,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QApplication,
 )
 from compilation_result_widget import CompilationResultWidget
 from controller_selection_widget import ControllerSelectionWidget

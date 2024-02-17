@@ -56,7 +56,7 @@ class LoginWindow(QDialog):
         self.setLayout(layout)
 
     def attempt_login(self):
-        QCoreApplication.instance().postEvent(self, QEvent(QEvent.User))
+        QCoreApplication.instance().postEvent(self, QEvent(QEvent.Type.User))
         email = self.emailLineEdit.text()
         password = self.passwordLineEdit.text()
         self.config_manager.set_email(email)
@@ -69,14 +69,17 @@ class LoginWindow(QDialog):
         try:
             await self.api.connectToWebsite()
             has_rights = await self.api.check_user_rights_for_requests()
+            print(has_rights)
             if has_rights:
+                print("accept")
                 self.accept()  # Ferme la fenêtre de dialogue avec un résultat positif
             else:
                 self.display_error("Vous n'avez pas les droits nécessaires.")
         except Exception as e:
             self.display_error(str(e))
         finally:
-            self.loginButton.setText("Connexion")
+            print("Connexion terminée")
+            print(self.loginButton)
 
     def display_error(self, message):
         # Affiche le message d'erreur dans la zone prévue à cet effet
