@@ -76,9 +76,7 @@ def init_login_frame(root_window: Toplevel):
     login_frame.pack(padx=40, pady=20, expand=True)
 
     # Load and resize the logo proportionally
-    original_image = Image.open(
-        "Full_logo_black.png"
-    )  # Adjust the path to your logo
+    original_image = Image.open("Ressources/Full_logo_black.png")
     target_width = 150
     original_width, original_height = original_image.size
     ratio = target_width / original_width

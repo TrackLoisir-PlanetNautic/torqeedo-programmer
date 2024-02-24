@@ -2,8 +2,6 @@ from tkinter.ttk import Label, Entry, Button, Frame, Style
 from tkinter import Toplevel, DISABLED, NORMAL
 import asyncio
 from api import API
-from config_manager import ConfigManager
-from PIL import Image, ImageTk
 
 
 def open_main_frame(root_window: Toplevel, api: API):

@@ -3,7 +3,7 @@ import os
 
 
 class ConfigManager:
-    def __init__(self, filepath="config.json"):
+    def __init__(self, filepath="Ressources/config.json"):
         self.filepath = filepath
         self.config = {}
         self.load_config()
