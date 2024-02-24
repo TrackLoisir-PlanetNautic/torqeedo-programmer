@@ -28,7 +28,7 @@ def download_firmware(torqeedo_programmer: TorqeedoProgrammer):
     print("download_firmware")
     asyncio.ensure_future(
         torqeedo_programmer.api.download_firmware(
-            torqeedo_programmer.selected_controller.torqCtrlId
+            torqeedo_programmer
         )
     )
 
