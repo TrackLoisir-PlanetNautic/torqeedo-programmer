@@ -1,23 +1,21 @@
+import sys
 import asyncio
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDialog,
-)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QDialog
 from login_window import LoginWindow
+from qasync import QEventLoop
+
 from torqeedo_programmer import TorqeedoProgrammer
 from main_window import MainWindow
 
 
 async def main():
-    app = QApplication([])
-    app.setStyleSheet("QWidget{font-size:20px;}")
-    api_url = "https://app.trackloisirs.com/api"
-    login_window = LoginWindow(api_url)
+    app = QApplication(sys.argv)
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
 
-    loop = asyncio.get_running_loop()
-
+    login_window = LoginWindow("https://app.trackloisirs.com/api")
     if login_window.exec() == QDialog.DialogCode.Accepted:
-        # À ce stade, login_window.api contient une instance API configurée et connectée
+        # Logique post-connexion
         api_instance = (
             login_window.api
         )  # Récupère l'instance API de la fenêtre de connexion
@@ -32,7 +30,6 @@ async def main():
             )
             main_window = MainWindow(torqeedo_programmer)
             main_window.show()
-            app.exec()
 
         except Exception as e:
             print(
@@ -40,8 +37,9 @@ async def main():
             )
             # Gérez l'erreur (par exemple, affichez un message à l'utilisateur)
 
+    with loop:
+        loop.run_forever()
 
-try:
+
+if __name__ == "__main__":
     asyncio.run(main())
-except KeyboardInterrupt:
-    print("Server stopped manually")

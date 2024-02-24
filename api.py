@@ -1,6 +1,6 @@
 import base64
 from pydantic import BaseModel
-from typing import List
+from typing import Any, List
 import requests
 from torqeedo_controller import TorqeedoController
 import aiohttp
@@ -56,27 +56,28 @@ class API(BaseModel):
                     data = await res.json()
                     return data
 
-    def getTorqeedoControllersList(self) -> List[TorqeedoController]:
+    async def getTorqeedoControllersList(self) -> List[TorqeedoController]:
         url = (
             self.base_url
             + "/backend/pythonProgrammer/getTorqeedoControllersList"
         )
         headers = {"Authorization": "Bearer " + self.accessToken}
         try:
-            res = requests.get(url, headers=headers, timeout=5)
-            res.raise_for_status()  # This will raise an exception for HTTP errors
-            data = res.json()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as res:
+                    res.raise_for_status()
+                    data = await res.json()
 
-            if data["status"] == 200:
-                controllers_list = [
-                    TorqeedoController(**controller)
-                    for controller in data["data"]
-                ]
-                return controllers_list
-            else:
-                raise Exception(
-                    f"Failed to fetch controllers: {data.get('message', 'No error message')}"
-                )
+                    if data["status"] == 200:
+                        controllers_list = [
+                            TorqeedoController(**controller)
+                            for controller in data["data"]
+                        ]
+                        return controllers_list
+                    else:
+                        raise Exception(
+                            f"Failed to fetch controllers: {data.get('message', 'No error message')}"
+                        )
         except requests.RequestException as e:
             raise Exception(f"Request failed: {e}")
 
