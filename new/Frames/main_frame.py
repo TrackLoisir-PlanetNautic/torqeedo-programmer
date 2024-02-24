@@ -3,6 +3,7 @@ from tkinter import Toplevel
 from torqeedo_programmer import TorqeedoProgrammer
 from Frames.select_controller_frame import render_select_controller_frame
 from Frames.select_serial_device_frame import render_select_serial_device_frame
+from Frames.download_firmware_frame import render_download_firmware_frame
 
 
 def open_main_frame(
@@ -17,3 +18,6 @@ def open_main_frame(
 
     render_select_controller_frame(first_column_frame, torqeedo_programmer)
     render_select_serial_device_frame(first_column_frame, torqeedo_programmer)
+
+    middle_column_frame = Frame(main_frame, borderwidth=2, relief="groove")
+    render_download_firmware_frame(middle_column_frame, torqeedo_programmer)
