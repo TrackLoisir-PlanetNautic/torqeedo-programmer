@@ -23,8 +23,10 @@ def refresh_serial_ports(combo: Combobox):
 def download_firmware(
     torqeedo_programmer: TorqeedoProgrammer,
     update_dowload_firm_progress_bar: callable,
+    progress_var: IntVar,
 ):
     print("download_firmware")
+    progress_var.set(0)
     asyncio.ensure_future(
         torqeedo_programmer.api.download_firmware(
             torqeedo_programmer.selected_controller,
@@ -57,7 +59,7 @@ def render_download_firmware_frame(
         middle_column_frame,
         text="Télécharger le firmware",
         command=lambda: download_firmware(
-            torqeedo_programmer, update_dowload_firm_progress_bar
+            torqeedo_programmer, update_dowload_firm_progress_bar, progress_var
         ),
     )
     download_button.pack(padx=10, pady=10)
