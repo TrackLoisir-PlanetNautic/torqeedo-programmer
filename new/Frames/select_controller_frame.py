@@ -75,6 +75,11 @@ def render_select_controller_frame(
     first_column_label = Label(
         first_column_frame, text="Selection du contrôleur"
     )
+    first_column_label.pack(padx=10, pady=10)
+    first_column_frame.pack(
+        side="left", expand=True, fill="both", padx=10, pady=10
+    )
+
     filter_kingwoId = StringVar()
     filter_last_ping = IntVar()
 
@@ -111,7 +116,7 @@ def render_select_controller_frame(
     # Création du bouton de rafraîchissement
     refresh_button = Button(
         first_column_frame,
-        text="Rafraîchir",
+        text="Rafraîchir la liste",
         command=lambda: refresh_controller_list(
             torqeedo_programmer,
             kingwoId_combobox,
@@ -134,11 +139,6 @@ def render_select_controller_frame(
         ),
     )
     filter_checkbox.pack()
-
-    first_column_label.pack(padx=10, pady=10)
-    first_column_frame.pack(
-        side="left", expand=True, fill="both", padx=10, pady=10
-    )
 
     # Initialisation de la liste des contrôleurs
     refresh_controller_list(
