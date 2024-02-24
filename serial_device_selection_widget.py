@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QPushButton,
 )
-from torqeedo_programmer import TorqeedoProgrammer
+from new.torqeedo_programmer import TorqeedoProgrammer
 import serial
 import serial.tools.list_ports
 

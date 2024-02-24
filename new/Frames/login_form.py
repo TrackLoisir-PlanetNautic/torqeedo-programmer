@@ -5,6 +5,7 @@ from api import API
 from config_manager import ConfigManager
 from PIL import Image, ImageTk
 from Frames.main_frame import open_main_frame
+from torqeedo_programmer import TorqeedoProgrammer
 
 
 # Fonction asynchrone pour gérer la connexion
@@ -12,14 +13,14 @@ from Frames.main_frame import open_main_frame
 async def login_and_open_login_frame(
     root_window: Toplevel,
     login_frame: Frame,
-    api: API,
+    torqeedo_programmer: TorqeedoProgrammer,
     email: str,
     password: str,
     login_button: Button,
     status_label: Label,
 ):
     try:
-        await api.connectToWebsite(email, password)
+        await torqeedo_programmer.api.connectToWebsite(email, password)
     except Exception as e:
         status_label.config(text=str(e))
         login_button.config(state=NORMAL)
@@ -27,14 +28,14 @@ async def login_and_open_login_frame(
 
     login_frame.pack_forget()
     login_frame.destroy()
-    open_main_frame(root_window, api)
+    open_main_frame(root_window, torqeedo_programmer)
 
 
 # Fonction appelée lorsque l'utilisateur clique sur le bouton de connexion
 def on_login_clicked(
     root_window: Toplevel,
     login_frame: Frame,
-    api: API,
+    torqeedo_programmer: TorqeedoProgrammer,
     email_entry: Entry,
     password_entry: Entry,
     login_button: Button,
@@ -49,7 +50,7 @@ def on_login_clicked(
         login_and_open_login_frame(
             root_window,
             login_frame,
-            api,
+            torqeedo_programmer,
             email,
             password,
             login_button,
@@ -117,7 +118,9 @@ def init_login_frame(root_window: Toplevel):
     status_label = Label(login_frame, text="", style="TLabel")
     status_label.pack(pady=(0, 10))
 
-    api = API(base_url="https://app.trackloisirs.com/api")
+    api_instance = API(base_url="https://app.trackloisirs.com/api")
+    torqeedo_programmer = TorqeedoProgrammer(api=api_instance)
+
     login_button = Button(
         login_frame,
         text="Connexion",
@@ -125,7 +128,7 @@ def init_login_frame(root_window: Toplevel):
         command=lambda: on_login_clicked(
             root_window,
             login_frame,
-            api,
+            torqeedo_programmer,
             email_entry,
             password_entry,
             login_button,
@@ -139,7 +142,7 @@ def init_login_frame(root_window: Toplevel):
         on_login_clicked(
             root_window,
             login_frame,
-            api,
+            torqeedo_programmer,
             email_entry,
             password_entry,
             login_button,

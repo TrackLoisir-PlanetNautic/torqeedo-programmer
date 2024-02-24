@@ -9,7 +9,7 @@ from compilation_result_widget import CompilationResultWidget
 from controller_selection_widget import ControllerSelectionWidget
 from download_firmware_widget import DownloadFirmwareWidget
 from serial_device_selection_widget import SerialDeviceSelectionWidget
-from torqeedo_programmer import TorqeedoProgrammer
+from new.torqeedo_programmer import TorqeedoProgrammer
 
 
 class MainWindow(QMainWindow):

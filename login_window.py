@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QCoreApplication, QEvent
 from qasync import asyncSlot
-from api import API
+from apiyooo import API
 from config_manager import ConfigManager
 
 

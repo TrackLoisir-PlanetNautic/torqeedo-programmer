@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from pydantic import BaseModel
 from typing import List
-from torqeedo_programmer import TorqeedoProgrammer
+from new.torqeedo_programmer import TorqeedoProgrammer
 
 
 # Widget pour afficher CompilationResult
