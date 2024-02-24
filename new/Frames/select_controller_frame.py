@@ -1,13 +1,11 @@
 from tkinter.ttk import (
     Label,
-    Entry,
     Button,
     Frame,
-    Style,
     Combobox,
     Checkbutton,
 )
-from tkinter import IntVar, DISABLED, NORMAL, StringVar
+from tkinter import IntVar, StringVar
 import asyncio
 from torqeedo_programmer import TorqeedoProgrammer
 
@@ -91,11 +89,23 @@ def render_select_controller_frame(
         ),
     )
 
-    def check_input(event):
+    def on_combobox_input(event):
         val = event.widget.get()
         filter_kingwoId.set(val)
 
-    kingwoId_combobox.bind("<KeyRelease>", check_input)
+    def on_combobox_select(event):
+        selected_kingwoId = kingwoId_combobox.get()
+        torqeedo_programmer.selected_controller = next(
+            c
+            for c in torqeedo_programmer.filtered_controllers
+            if c.kingwoId == selected_kingwoId
+        )
+        print(torqeedo_programmer.selected_controller)
+
+    kingwoId_combobox.bind("<KeyRelease>", on_combobox_input)
+    kingwoId_combobox.bind(
+        "<<ComboboxSelected>>", on_combobox_select
+    )  # Bind selection event
     kingwoId_combobox.pack(padx=10, pady=10)
 
     # Création du bouton de rafraîchissement
@@ -137,4 +147,3 @@ def render_select_controller_frame(
         filter_last_ping,
         filter_kingwoId,
     )
-    print(torqeedo_programmer.selected_controller)
