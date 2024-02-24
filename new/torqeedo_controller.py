@@ -15,3 +15,4 @@ class TorqeedoController(BaseModel):
     lastCheckOTA: int
     lastUpdateOTA: int
     statusId: int
+    hashkey_b64: bytes = None

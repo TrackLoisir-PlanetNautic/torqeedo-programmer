@@ -3,6 +3,7 @@ from typing import List
 import aiohttp
 from torqeedo_controller import TorqeedoController
 import base64
+from tkinter.ttk import Label
 
 
 # Nouvelle définition de la classe API utilisant aiohttp pour
@@ -105,6 +106,7 @@ class API(BaseModel):
         self,
         torqeedo_controller: TorqeedoController,
         update_dowload_firm_progress_bar: callable,
+        status_label: Label,
     ):
         try:
             print("Downloading start firmware")
@@ -115,6 +117,7 @@ class API(BaseModel):
                 "torqctrlid": str(torqeedo_controller.torqCtrlId),
             }
             print("Downloading hashkey")
+            status_label.config(text="Downloading hashkey")
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers) as res:
                     res.raise_for_status()
@@ -124,10 +127,14 @@ class API(BaseModel):
                         raise Exception(
                             f"Failed to download firmware: {data['message']}"
                         )
-                    print("hashkey_b64 retrieved")
-                    # print(base64.b64decode(data["hashkey_b64"]))
+                    torqeedo_controller.hashkey_b64 = base64.b64decode(
+                        data["hashkey_b64"]
+                    )
+                    print("Hashkey downloaded")
+                    status_label.config(text="Hashkey downloaded")
 
                 print("Downloading st_bootloader")
+                status_label.config(text="Downloading bootloader")
                 st_bootloader = await self.download_and_store(
                     "/backend/pythonProgrammer/getBootloader",
                     "./downloads/bootloader_tmp",
@@ -137,6 +144,7 @@ class API(BaseModel):
                 )
                 if not st_bootloader:
                     print("Failed to download bootloader")
+                    status_label.config(text="Failed to download bootloader")
                     return
 
                 print("Downloading st_parttable")
@@ -149,9 +157,11 @@ class API(BaseModel):
                 )
                 if not st_parttable:
                     print("Failed to download part table")
+                    status_label.config(text="Failed to download part table")
                     return
 
                 print("Downloading st_signedfirmware")
+                status_label.config(text="Downloading signed firmware")
                 st_signedfirmware = await self.download_and_store(
                     "/backend/pythonProgrammer/getSignedFirmware",
                     "./downloads/firmware_tmp",
@@ -161,8 +171,8 @@ class API(BaseModel):
                 )
                 if not st_signedfirmware:
                     print("Failed to download signed firmware")
-                    return
-                print("Download completed !!")
+                    status_label.config(text="Failed to download signed firmware")
+                status_label.config(text="Download completed successfully")
         except Exception as e:
             print(e)
             return
