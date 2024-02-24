@@ -1,6 +1,5 @@
-from tkinter.ttk import Label, Entry, Button, Frame, Style
-from tkinter import Toplevel, DISABLED, NORMAL
-import asyncio
+from tkinter.ttk import Frame
+from tkinter import Toplevel
 from api import API
 from Frames.select_controller_frame import open_select_controller_frame
 
