@@ -4,7 +4,7 @@ import asyncio
 from api import API
 from config_manager import ConfigManager
 from PIL import Image, ImageTk
-from main_frame import open_main_frame
+from Frames.main_frame import open_main_frame
 
 
 # Fonction asynchrone pour gérer la connexion
