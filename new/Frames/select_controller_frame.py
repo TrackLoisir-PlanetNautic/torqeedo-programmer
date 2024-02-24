@@ -69,13 +69,12 @@ def update_combobox_values(
 
 
 def render_select_controller_frame(
-    main_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
+    first_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
 ):
-    first_column_frame = Frame(main_frame, borderwidth=2, relief="groove")
     first_column_label = Label(
         first_column_frame, text="Selection du contrôleur"
     )
-    first_column_label.pack(padx=10, pady=10)
+    first_column_label.pack(padx=10, pady=5)
     first_column_frame.pack(
         side="left", expand=True, fill="both", padx=10, pady=10
     )
@@ -111,7 +110,7 @@ def render_select_controller_frame(
     kingwoId_combobox.bind(
         "<<ComboboxSelected>>", on_combobox_select
     )  # Bind selection event
-    kingwoId_combobox.pack(padx=10, pady=10)
+    kingwoId_combobox.pack(padx=10, pady=5)
 
     # Création du bouton de rafraîchissement
     refresh_button = Button(
@@ -124,7 +123,8 @@ def render_select_controller_frame(
             filter_kingwoId,
         ),
     )
-    refresh_button.pack(pady=10)
+
+    refresh_button.pack(pady=5)
 
     # CheckBox pour filtrer lastPing = 0
     filter_checkbox = Checkbutton(
@@ -139,6 +139,7 @@ def render_select_controller_frame(
         ),
     )
     filter_checkbox.pack()
+    filter_checkbox.pack(padx=10, pady=5)
 
     # Initialisation de la liste des contrôleurs
     refresh_controller_list(
