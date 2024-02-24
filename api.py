@@ -42,6 +42,10 @@ class API(BaseModel):
                         raise Exception(
                             f"Echec de la connexion : {data.get('message', 'Aucune erreur retournée')}"
                         )
+            except Exception:
+                print("dddd")
+            except requests.ConnectionError:
+                print("Can't connect to the site, try again later")
             except requests.RequestException as e:
                 raise Exception(f"Echec de la connexion: {e}")
 

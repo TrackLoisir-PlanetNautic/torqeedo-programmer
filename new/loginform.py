@@ -1,21 +1,26 @@
-from tkinter import Label, Entry, Button, Toplevel, DISABLED, NORMAL
+from tkinter.ttk import Label, Entry, Button, Frame
+from tkinter import Toplevel, DISABLED, NORMAL
 import asyncio
 from api import API
 from config_manager import ConfigManager
 
 
-# Fonction pour ouvrir une nouvelle fenêtre après une connexion réussie
-def open_main_window(login_window: Toplevel):
-    login_window.destroy()
-    main_window = Toplevel()
-    main_window.title("Nouvelle Fenêtre")
-    Label(main_window, text="Connexion réussie!").pack()
+# Close login frame and open main frame
+def open_login_frame(root_window: Toplevel, login_frame: Frame):
+    login_frame.pack_forget()
+    login_frame.destroy()
+
+    main_frame = Frame(root_window)
+    test = Label(main_frame, text="Bienvenue")
+    test.pack()
+    main_frame.pack(padx=20, pady=20)
 
 
 # Fonction asynchrone pour gérer la connexion
 # et l'ouverture d'une nouvelle fenêtre
-async def login_and_open_main_window(
-    login_window: Toplevel,
+async def login_and_open_login_frame(
+    root_window: Toplevel,
+    login_frame: Frame,
     api: API,
     email: str,
     password: str,
@@ -24,16 +29,18 @@ async def login_and_open_main_window(
 ):
     try:
         await api.connectToWebsite(email, password)
-        open_main_window(login_window)
     except Exception as e:
-        status_label.config(text=e)
-    finally:
+        status_label.config(text=str(e))
         login_button.config(state=NORMAL)
+        return
+
+    open_login_frame(root_window, login_frame)
 
 
 # Fonction appelée lorsque l'utilisateur clique sur le bouton de connexion
 def on_login_clicked(
-    login_window: Toplevel,
+    root_window: Toplevel,
+    login_frame: Frame,
     api: API,
     email_entry: Entry,
     password_entry: Entry,
@@ -46,35 +53,47 @@ def on_login_clicked(
     login_button.config(state=DISABLED)
     status_label.config(text="Connexion en cours...")
     asyncio.ensure_future(
-        login_and_open_main_window(
-            login_window, api, email, password, login_button, status_label
+        login_and_open_login_frame(
+            root_window,
+            login_frame,
+            api,
+            email,
+            password,
+            login_button,
+            status_label,
         )
     )
 
 
-def init_login_window(login_window: Toplevel):
-    login_window.title("Fenêtre de Connexion")
+def init_login_frame(root_window: Toplevel):
+
     default_email = ConfigManager().get_email()
-    email_label = Label(login_window, text="Adresse mail:")
-    email_label.pack()
-    email_entry = Entry(login_window)
+
+    login_frame = Frame(root_window)
+    login_frame.pack(padx=20, pady=20)
+    email_label = Label(login_frame, text="Adresse mail:")
+    email_label.pack(
+        pady=(0, 10)
+    )  # Ajoute de l'espace en dessous du label de l'email
+    email_entry = Entry(login_frame)
     email_entry.insert(0, default_email)
-    email_entry.pack()
+    email_entry.pack(pady=(0, 20))
 
-    password_label = Label(login_window, text="Mot de passe:")
-    password_label.pack()
-    password_entry = Entry(login_window, show="*")
-    password_entry.pack()
+    password_label = Label(login_frame, text="Mot de passe:")
+    password_label.pack(pady=(0, 10))
+    password_entry = Entry(login_frame, show="*")
+    password_entry.pack(pady=(0, 20))
 
-    status_label = Label(login_window, text="")
-    status_label.pack()
+    status_label = Label(login_frame, text="")
+    status_label.pack(pady=(0, 10))
 
     api = API(base_url="https://app.trackloisirs.com/api")
     login_button = Button(
-        login_window,
+        login_frame,
         text="Connexion",
         command=lambda: on_login_clicked(
-            login_window,
+            root_window,
+            login_frame,
             api,
             email_entry,
             password_entry,
@@ -87,7 +106,8 @@ def init_login_window(login_window: Toplevel):
     # Fonction pour gérer l'appui sur la touche Entrée
     def handle_enter(event):
         on_login_clicked(
-            login_window,
+            root_window,
+            login_frame,
             api,
             email_entry,
             password_entry,
@@ -96,4 +116,4 @@ def init_login_window(login_window: Toplevel):
         )
 
     # Associer l'appui sur la touche Entrée à la tentative de connexion
-    login_window.bind("<Return>", handle_enter)
+    root_window.bind("<Return>", handle_enter)

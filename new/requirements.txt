@@ -7,3 +7,4 @@ bitstring
 reedsolo
 aiohttp
 pydantic
+ttkthemes

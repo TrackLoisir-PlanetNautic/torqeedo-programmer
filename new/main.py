@@ -1,13 +1,15 @@
-from tkinter import Tk
 import asyncio
 import aiotkinter
-from loginform import init_login_window
+from loginform import init_login_frame
+from ttkthemes import ThemedTk
 
 if __name__ == "__main__":
     asyncio.set_event_loop_policy(aiotkinter.TkinterEventLoopPolicy())
     loop = asyncio.get_event_loop()
 
-    login_window = Tk()
-    init_login_window(login_window)
+    root_window = ThemedTk(theme="arc")
+    root_window.geometry("1200x800")
+    root_window.title("Trackloisirs")
+    init_login_frame(root_window)
 
     loop.run_forever()
