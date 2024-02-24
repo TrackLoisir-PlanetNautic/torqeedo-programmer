@@ -79,3 +79,6 @@ esptool/targets/__pycache__/esp32s3beta2.cpython-311.pyc
 esptool/targets/__pycache__/esp8266.cpython-311.pyc
 config.json
 .venv
+new/downloads/bootloader_tmp
+new/__pycache__
+new/Frames/__pycache__

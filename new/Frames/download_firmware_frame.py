@@ -1,3 +1,4 @@
+import asyncio
 from tkinter.ttk import (
     Label,
     Button,
@@ -23,10 +24,13 @@ def refresh_serial_ports(combo: Combobox):
 
 
 # Fonction pour connecter le programmeur
-def download_firmware(
-    torqeedo_programmer: TorqeedoProgrammer
-):
+def download_firmware(torqeedo_programmer: TorqeedoProgrammer):
     print("download_firmware")
+    asyncio.ensure_future(
+        torqeedo_programmer.api.download_firmware(
+            torqeedo_programmer.selected_controller.torqCtrlId
+        )
+    )
 
 
 def render_download_firmware_frame(
