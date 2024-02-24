@@ -15,8 +15,7 @@ idna==3.6
 multidict==6.0.5
 pillow==10.2.0
 pycparser==2.21
-pydantic==2.6.1
-pydantic_core==2.16.2
+pydantic==1.8.2
 pyserial==3.5
 qasync==0.27.1
 reedsolo==1.7.0
@@ -27,3 +26,4 @@ ttkthemes==3.2.2
 typing_extensions==4.9.0
 urllib3==2.2.0
 yarl==1.9.4
+numpy==1.26.4
