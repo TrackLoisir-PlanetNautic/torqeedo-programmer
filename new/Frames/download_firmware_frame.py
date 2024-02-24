@@ -1,13 +1,9 @@
 import asyncio
-from tkinter.ttk import (
-    Label,
-    Button,
-    Frame,
-    Combobox,
-)
+from tkinter.ttk import Label, Button, Frame, Combobox, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
 import serial
 import serial.tools.list_ports
+from tkinter import IntVar
 
 
 def refresh_serial_ports(combo: Combobox):
@@ -24,11 +20,13 @@ def refresh_serial_ports(combo: Combobox):
 
 
 # Fonction pour connecter le programmeur
-def download_firmware(torqeedo_programmer: TorqeedoProgrammer):
+def download_firmware(
+    torqeedo_programmer: TorqeedoProgrammer, update_progress_bar: callable
+):
     print("download_firmware")
     asyncio.ensure_future(
         torqeedo_programmer.api.download_firmware(
-            torqeedo_programmer
+            torqeedo_programmer.selected_controller, update_progress_bar
         )
     )
 
@@ -36,6 +34,18 @@ def download_firmware(torqeedo_programmer: TorqeedoProgrammer):
 def render_download_firmware_frame(
     middle_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
 ):
+    progress_var = IntVar()
+    progress_var.set(0)
+    current_step = IntVar()
+    current_step.set(0)
+
+    def update_progress_bar(chunk_size, total_length, step):
+        current = progress_var.get()
+        if step != current_step.get():
+            current_step.set(step)
+            current += 25
+        progress_var.set(current + chunk_size / total_length * 100)
+
     middle_column_frame.pack(side="left", expand=True, fill="both")
     # Widget pour la sélection du port série
     serial_ports_label = Label(middle_column_frame, text="Download")
@@ -44,6 +54,16 @@ def render_download_firmware_frame(
     download_button = Button(
         middle_column_frame,
         text="Télécharger le firmware",
-        command=lambda: download_firmware(torqeedo_programmer),
+        command=lambda: download_firmware(
+            torqeedo_programmer, update_progress_bar
+        ),
     )
     download_button.pack(padx=10, pady=10)
+    progress_bar = Progressbar(
+        middle_column_frame,
+        orient="horizontal",
+        length=200,
+        mode="determinate",
+        variable=progress_var,
+    )
+    progress_bar.pack(padx=10, pady=5)

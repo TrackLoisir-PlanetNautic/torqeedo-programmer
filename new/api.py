@@ -66,13 +66,17 @@ class API(BaseModel):
         self,
         endpoint: str,
         store_path: str,
-        torqeedo_programmer: TorqeedoController,
+        torqeedo_controller: TorqeedoController,
+        update_progress_bar: callable,
+        step: int
     ):
         url = self.base_url + endpoint
         print(url)
         headers = {
             "authorization": "Bearer " + self.accessToken,
-            "torqctrlid": str(torqeedo_programmer.torqCtrlId),
+            "torqctrlid": str(
+                torqeedo_controller.torqCtrlId
+            ),
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as res:
@@ -94,16 +98,23 @@ class API(BaseModel):
                         if chunk:
                             f.write(chunk)
                             f.flush()
+                            update_progress_bar(len(chunk), total_length, step)
                 return 200
 
-    async def download_firmware(self, torqeedo_programmer: TorqeedoController):
+    async def download_firmware(
+        self,
+        torqeedo_controller: TorqeedoController,
+        update_progress_bar: callable,
+    ):
         try:
             print("Downloading start firmware")
 
             url = self.base_url + "/backend/pythonProgrammer/getHashSigningKey"
             headers = {
                 "authorization": "Bearer " + self.accessToken,
-                "torqctrlid": str(torqeedo_programmer.torqCtrlId),
+                "torqctrlid": str(
+                    torqeedo_controller.torqCtrlId
+                ),
             }
             print("Downloading hashkey")
             async with aiohttp.ClientSession() as session:
@@ -122,7 +133,9 @@ class API(BaseModel):
                 st_bootloader = await self.download_and_store(
                     "/backend/pythonProgrammer/getBootloader",
                     "./downloads/bootloader_tmp",
-                    torqeedo_programmer,
+                    torqeedo_controller,
+                    update_progress_bar,
+                    1
                 )
                 if not st_bootloader:
                     print("Failed to download bootloader")
@@ -132,7 +145,9 @@ class API(BaseModel):
                 st_parttable = await self.download_and_store(
                     "/backend/pythonProgrammer/getPartTable",
                     "./downloads/part_table_tmp",
-                    torqeedo_programmer,
+                    torqeedo_controller,
+                    update_progress_bar,
+                    2
                 )
                 if not st_parttable:
                     print("Failed to download part table")
@@ -142,12 +157,14 @@ class API(BaseModel):
                 st_signedfirmware = await self.download_and_store(
                     "/backend/pythonProgrammer/getSignedFirmware",
                     "./downloads/firmware_tmp",
-                    torqeedo_programmer,
+                    torqeedo_controller,
+                    update_progress_bar,
+                    3
                 )
                 if not st_signedfirmware:
                     print("Failed to download signed firmware")
                     return
-                print("Download completed")
+                print("Download completed !!")
         except Exception as e:
             print(e)
             return
