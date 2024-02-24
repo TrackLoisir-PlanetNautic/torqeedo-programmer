@@ -27,7 +27,7 @@ async def login_and_open_login_frame(
 
     login_frame.pack_forget()
     login_frame.destroy()
-    open_main_frame(root_window)
+    open_main_frame(root_window, api)
 
 
 # Fonction appelée lorsque l'utilisateur clique sur le bouton de connexion
