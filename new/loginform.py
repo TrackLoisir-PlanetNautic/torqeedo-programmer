@@ -1,5 +1,4 @@
 from tkinter import Label, Entry, Button, Toplevel, DISABLED, NORMAL
-from tkinter import messagebox
 import asyncio
 from api import API
 from config_manager import ConfigManager

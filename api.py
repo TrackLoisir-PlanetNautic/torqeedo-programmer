@@ -1,6 +1,6 @@
 import base64
 from pydantic import BaseModel
-from typing import Any, List
+from typing import List
 import requests
 from torqeedo_controller import TorqeedoController
 import aiohttp
