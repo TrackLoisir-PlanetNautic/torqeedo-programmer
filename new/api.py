@@ -124,8 +124,8 @@ class API(BaseModel):
                     data = await res.json()
                     if data["status"] != 200:
                         print(data["message"])
-                        raise Exception(
-                            f"Failed to download firmware: {data['message']}"
+                        status_label.config(
+                            text=f"Failed to download firmware: {data['message']}"
                         )
                     torqeedo_controller.hashkey_b64 = base64.b64decode(
                         data["hashkey_b64"]
@@ -171,7 +171,9 @@ class API(BaseModel):
                 )
                 if not st_signedfirmware:
                     print("Failed to download signed firmware")
-                    status_label.config(text="Failed to download signed firmware")
+                    status_label.config(
+                        text="Failed to download signed firmware"
+                    )
                 status_label.config(text="Download completed successfully")
         except Exception as e:
             print(e)

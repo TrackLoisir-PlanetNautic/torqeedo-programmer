@@ -106,9 +106,11 @@ def click_test_serial_connection(
         before="default_reset",
         serial_connection_status_label=serial_connection_status_label,
     )
-    esp_rom = EspRom(esp=connected_esp)
-    torqeedo_programmer.selected_controller.esp = esp_rom
-    if esp_rom is not None:
+    if connected_esp is not None:
+        print(connected_esp)
+        esp_rom = EspRom(esp=connected_esp)
+        torqeedo_programmer.selected_controller.esp = esp_rom
+
         esp_rom.mac_address = str(esp_rom.esp.read_mac())
         esp_rom.description = esp_rom.esp.get_chip_description()
         esp_rom.flash_infos = esp_rom.get_flash_id()
@@ -119,7 +121,9 @@ def click_test_serial_connection(
             text="Secure boot ok : " + str(esp_rom.is_abs_done_fuse_ok())
         )
         print(esp_rom.efuses)
-        is_the_same_block2 = esp_rom.is_the_same_block2()
+        is_the_same_block2 = esp_rom.is_the_same_block2(
+            torqeedo_programmer.selected_controller.hashkey_b64
+        )
         if is_the_same_block2 == 1:
             burn_hash_key_status_label.config(text="Already Burned (same)")
             esp_rom.already_burned_same = True
@@ -138,6 +142,11 @@ def click_test_serial_connection(
         print(str(esp_rom.efuses[0].blocks[2].id))
         print(dir(esp_rom.efuses[0].blocks[2]))
         print((esp_rom.efuses[0].blocks[2].bitarray))
+    else:
+        print("No esp connected")
+        serial_connection_status_label.config(
+            text="Connexion failed. Make sure the ESP is connected and try again."
+        )
 
 
 def render_test_serial_connection_frame(
@@ -151,7 +160,7 @@ def render_test_serial_connection_frame(
 
     test_serial_connection_button = Button(
         middle_column_frame,
-        text="Télécharger le firmware",
+        text="Test serial connection",
         command=lambda: click_test_serial_connection(
             torqeedo_programmer,
             serial_connection_status_label,

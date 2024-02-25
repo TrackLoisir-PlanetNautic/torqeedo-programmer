@@ -4,6 +4,9 @@ from torqeedo_programmer import TorqeedoProgrammer
 from Frames.select_controller_frame import render_select_controller_frame
 from Frames.select_serial_device_frame import render_select_serial_device_frame
 from Frames.download_firmware_frame import render_download_firmware_frame
+from Frames.test_serial_connection_frame import (
+    render_test_serial_connection_frame,
+)
 
 
 def open_main_frame(
@@ -23,3 +26,6 @@ def open_main_frame(
     middle_column_frame.pack(side="left", expand=True, fill="both")
 
     render_download_firmware_frame(middle_column_frame, torqeedo_programmer)
+    render_test_serial_connection_frame(
+        middle_column_frame, torqeedo_programmer
+    )

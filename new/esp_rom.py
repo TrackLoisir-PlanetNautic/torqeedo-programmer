@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Any, Optional
 
 import esptool
 
@@ -28,6 +28,10 @@ import espefuse.efuse.esp32s3 as esp32s3_efuse
 import espefuse.efuse.esp32s3beta2 as esp32s3beta2_efuse
 
 from collections import namedtuple
+
+from esptool.util import (
+    hexify,
+)
 
 CHIP_DEFS = {
     "esp8266": ESP8266ROM,
@@ -91,7 +95,7 @@ SUPPORTED_CHIPS = {
 
 
 class EspRom(BaseModel):
-    esp: esptool.ESP32ROM
+    esp: Any
     mac_address: Optional[str] = None
     description: Optional[str] = None
     flash_infos: Optional[dict | None] = None
@@ -146,8 +150,8 @@ class EspRom(BaseModel):
                 "get_efuses: Unsupported chip (%s)" % self.esp.CHIP_NAME
             )
 
-    def is_the_same_block2(self) -> int:
-        if not (self.signHashKeyReady == True and self.efuse != None):
+    def is_the_same_block2(self, hashkey_b64: bytes):
+        if hashkey_b64 is None or self.efuse is None:
             return -2
 
         print("------")
