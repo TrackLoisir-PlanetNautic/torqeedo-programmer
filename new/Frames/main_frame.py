@@ -7,6 +7,7 @@ from Frames.download_firmware_frame import render_download_firmware_frame
 from Frames.test_serial_connection_frame import (
     render_test_serial_connection_frame,
 )
+from Frames.burn_hash_key_frame import render_burn_hash_key_frame
 
 
 def open_main_frame(
@@ -29,3 +30,5 @@ def open_main_frame(
     render_test_serial_connection_frame(
         middle_column_frame, torqeedo_programmer
     )
+
+    render_burn_hash_key_frame(middle_column_frame, torqeedo_programmer)

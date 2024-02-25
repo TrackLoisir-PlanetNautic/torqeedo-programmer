@@ -133,6 +133,7 @@ class API(BaseModel):
                     torqeedo_controller.hashkey_b64 = base64.b64decode(
                         data["hashkey_b64"]
                     )
+                    update_dowload_firm_progress_bar(1, 1, 0)
                     print("Hashkey downloaded")
                     status_label.config(text="Hashkey downloaded")
 

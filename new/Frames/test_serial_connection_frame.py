@@ -93,7 +93,6 @@ def click_test_serial_connection(
     serial_connection_status_label: Label,
     secure_boot_status_label: Label,
     mac_address_label: Label,
-    burn_hash_key_status_label: Label,
 ):
     print("test serial")
 
@@ -125,19 +124,29 @@ def click_test_serial_connection(
             torqeedo_programmer.selected_controller.hashkey_b64
         )
         if is_the_same_block2 == 1:
-            burn_hash_key_status_label.config(text="Already Burned (same)")
-            esp_rom.already_burned_same = True
+            torqeedo_programmer.burn_hash_key_status_label = (
+                "Already Burned (same)"
+            )
+            esp_rom.already_burned = True
+            esp_rom.is_same_hash_key = True
         elif is_the_same_block2 == 0:
-            burn_hash_key_status_label.config(
-                text="Already Burned (not the same)"
+            torqeedo_programmer.burn_hash_key_status_label = (
+                "Already Burned (not the same)"
             )
-            esp_rom.compare_hash_key = True
+            esp_rom.already_burned = True
+            esp_rom.is_same_hash_key = False
         elif is_the_same_block2 == -2:
-            burn_hash_key_status_label.config(
-                text="Error, try download content button"
+            torqeedo_programmer.burn_hash_key_status_label = (
+                "Error, try download content button"
             )
+            esp_rom.already_burned = False
+            esp_rom.is_same_hash_key = False
         else:
-            burn_hash_key_status_label.config(text="Not burned")
+            torqeedo_programmer.burn_hash_key_status_label.config = (
+                "Not burned"
+            )
+            esp_rom.already_burned = False
+            esp_rom.is_same_hash_key = False
 
         print(str(esp_rom.efuses[0].blocks[2].id))
         print(dir(esp_rom.efuses[0].blocks[2]))
@@ -150,7 +159,8 @@ def click_test_serial_connection(
 
 
 def render_test_serial_connection_frame(
-    middle_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
+    middle_column_frame: Frame,
+    torqeedo_programmer: TorqeedoProgrammer,
 ):
 
     test_serial_connection_label = Label(
@@ -166,7 +176,6 @@ def render_test_serial_connection_frame(
             serial_connection_status_label,
             secure_boot_status_label,
             mac_address_label,
-            burn_hash_key_status_label,
         ),
     )
     test_serial_connection_button.pack(padx=10, pady=10)
@@ -183,6 +192,3 @@ def render_test_serial_connection_frame(
 
     mac_address_label = Label(middle_column_frame, text="MAC Address")
     mac_address_label.pack(padx=10, pady=5)
-
-    burn_hash_key_status_label = Label(middle_column_frame, text="Not burned")
-    burn_hash_key_status_label.pack(padx=10, pady=5)

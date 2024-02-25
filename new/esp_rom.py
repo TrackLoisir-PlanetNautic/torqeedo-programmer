@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from typing import Any, Optional
+import time
+from tkinter.ttk import Label
 
 import esptool
 
@@ -101,8 +103,8 @@ class EspRom(BaseModel):
     flash_infos: Optional[dict | None] = None
     major_rev: Optional[int] = None
     efuses: Optional[tuple] = None
-    already_burned_same: bool = False
-    compare_hash_key: bool = False
+    already_burned: bool = False
+    is_same_hash_key: bool = False
 
     def get_flash_id(self):
         """
@@ -174,3 +176,214 @@ class EspRom(BaseModel):
         ):
             return 1
         return 0
+
+    def burn_sign_hask_key(
+        self,
+        hashkey_b64: bytes,
+        update_burn_hash_key_progress_bar: callable,
+        burn_hash_key_status_label: Label,
+    ):
+        if not self.already_burned:
+            try:
+                print("burn hash key")
+                update_burn_hash_key_progress_bar(0)
+                self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
+                update_burn_hash_key_progress_bar(50)
+                time.sleep(0.25)
+                self.burn_key(
+                    self.esp,
+                    self.efuses[0],
+                    "secure_boot_v2",
+                    hashkey_b64,
+                    True,
+                    None,
+                )
+                self.burnProgress.setValue(100)
+                burn_hash_key_status_label.config(text="Burned !")
+                time.sleep(0.25)
+                self.efuse = self.get_efuses(self.esp)
+                self.absDoneStatus.setText(
+                    "secure boot ok: " + str(self.is_abs_done_fuse_ok())
+                )
+                if self.is_the_same_block2() != 1:
+                    burn_hash_key_status_label.config(
+                        text="Burn key failed !!"
+                    )
+            except:
+                print("ERROR : can't burn now !")
+        else:
+            print("compare keys")
+
+    def burn_efuse(self, esp, efuses, efuse_name, value, args):
+        def print_attention(blocked_efuses_after_burn):
+            if len(blocked_efuses_after_burn):
+                print(
+                    "    ATTENTION! This BLOCK uses NOT the NONE coding scheme "
+                    "and after 'BURN', these efuses can not be burned in the feature:"
+                )
+                for i in range(0, len(blocked_efuses_after_burn), 5):
+                    print(
+                        "              ",
+                        "".join(
+                            "{}".format(blocked_efuses_after_burn[i : i + 5 :])
+                        ),
+                    )
+
+        efuse_name_list = [efuse_name]
+        burn_efuses_list = [efuses[name] for name in efuse_name_list]
+        old_value_list = [efuses[name].get_raw() for name in efuse_name_list]
+        new_value_list = [value]
+
+        attention = ""
+        print("The efuses to burn:")
+        for block in efuses.blocks:
+            burn_list_a_block = [
+                e for e in burn_efuses_list if e.block == block.id
+            ]
+            if len(burn_list_a_block):
+                print("  from BLOCK%d" % (block.id))
+                for field in burn_list_a_block:
+                    print("     - %s" % (field.name))
+                    if (
+                        efuses.blocks[field.block].get_coding_scheme()
+                        != efuses.REGS.CODING_SCHEME_NONE
+                    ):
+                        using_the_same_block_names = [
+                            e.name for e in efuses if e.block == field.block
+                        ]
+                        wr_names = [e.name for e in burn_list_a_block]
+                        blocked_efuses_after_burn = [
+                            name
+                            for name in using_the_same_block_names
+                            if name not in wr_names
+                        ]
+                        attention = " (see 'ATTENTION!' above)"
+                if attention:
+                    print_attention(blocked_efuses_after_burn)
+
+        print("\nBurning efuses{}:".format(attention))
+        for efuse, new_value in zip(burn_efuses_list, new_value_list):
+            print(
+                "\n    - '{}' ({}) {} -> {}".format(
+                    efuse.name,
+                    efuse.description,
+                    efuse.get_bitstring(),
+                    efuse.convert_to_bitstring(new_value),
+                )
+            )
+            efuse.save(new_value)
+
+        print()
+        if "ENABLE_SECURITY_DOWNLOAD" in efuse_name_list:
+            print(
+                "ENABLE_SECURITY_DOWNLOAD -> 1: eFuses will not be read back "
+                "for confirmation because this mode disables "
+                "any SRAM and register operations."
+            )
+            print("                               espefuse will not work.")
+            print(
+                "                               esptool can read/write only flash."
+            )
+
+        if "DIS_DOWNLOAD_MODE" in efuse_name_list:
+            print(
+                "DIS_DOWNLOAD_MODE -> 1: eFuses will not be read back for "
+                "confirmation because this mode disables any communication with the chip."
+            )
+            print(
+                "                        espefuse/esptool will not work because "
+                "they will not be able to connect to the chip."
+            )
+
+        if (
+            esp.CHIP_NAME == "ESP32"
+            and esp.get_chip_revision() >= 300
+            and "UART_DOWNLOAD_DIS" in efuse_name_list
+        ):
+            print(
+                "UART_DOWNLOAD_DIS -> 1: eFuses will be read for confirmation, "
+                "but after that connection to the chip will become impossible."
+            )
+            print("                        espefuse/esptool will not work.")
+
+        if not efuses.burn_all(check_batch_mode=True):
+            return
+
+        print("Checking efuses...")
+        raise_error = False
+        for efuse, old_value, new_value in zip(
+            burn_efuses_list, old_value_list, new_value_list
+        ):
+            if not efuse.is_readable():
+                print(
+                    "Efuse %s is read-protected. Read back the burn value is not possible."
+                    % efuse.name
+                )
+            else:
+                new_value = efuse.convert_to_bitstring(new_value)
+                burned_value = efuse.get_bitstring()
+                if burned_value != new_value:
+                    print(
+                        burned_value,
+                        "->",
+                        new_value,
+                        "Efuse %s failed to burn. Protected?" % efuse.name,
+                    )
+                    raise_error = True
+        if raise_error:
+            raise esptool.FatalError("The burn was not successful.")
+        else:
+            print("Successful")
+
+    def burn_key(self, esp, efuses, blk, key: bytes, no_protect_key, args):
+        block_name = blk
+        # efuses.force_write_always = False
+
+        print("Burn keys to blocks:")
+        efuse = None
+        for block in efuses.blocks:
+            if block_name == block.name or block_name in block.alias:
+                efuse = efuses[block.name]
+        if efuse is None:
+            raise esptool.FatalError("Unknown block name - %s" % (block_name))
+        num_bytes = efuse.bit_len // 8
+        data = key
+        revers_msg = None
+        if block_name in ("flash_encryption", "secure_boot_v1"):
+            revers_msg = "\tReversing the byte order"
+            data = data[::-1]
+        print(" - %s -> [%s]" % (efuse.name, hexify(data, " ")))
+        if revers_msg:
+            print(revers_msg)
+        if len(data) != num_bytes:
+            raise esptool.FatalError(
+                "Incorrect key file size %d. "
+                "Key file must be %d bytes (%d bits) of raw binary key data."
+                % (len(data), num_bytes, num_bytes * 8)
+            )
+
+        efuse.save(data)
+
+        if block_name in ("flash_encryption", "secure_boot_v1"):
+            if not no_protect_key:
+                print("\tDisabling read to key block")
+                efuse.disable_read()
+
+        if not no_protect_key:
+            print("\tDisabling write to key block")
+            efuse.disable_write()
+        print("")
+
+        if no_protect_key:
+            print("Key is left unprotected as per --no-protect-key argument.")
+
+        msg = "Burn keys in efuse blocks.\n"
+        if no_protect_key:
+            msg += "The key block will left readable and writeable (due to --no-protect-key)"
+        else:
+            msg += "The key block will be read and write protected "
+            "(no further changes or readback)"
+        print(msg, "\n")
+        if not efuses.burn_all(check_batch_mode=True):
+            return
+        print("Successful")
