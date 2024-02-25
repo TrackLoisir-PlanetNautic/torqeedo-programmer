@@ -73,7 +73,7 @@ def render_download_firmware_frame(
         orient="horizontal",
         length=200,
         mode="determinate",
-        variable=progress_var.get(),
+        variable=progress_var,
     )
     progress_bar.pack(padx=10, pady=5)
 
