@@ -52,10 +52,8 @@ def render_download_firmware_frame(
             current += 25
         progress_var.set(current + chunk_size / total_length * 100)
 
-    middle_column_frame.pack(side="left", expand=True, fill="both")
-    # Widget pour la sélection du port série
-    serial_ports_label = Label(middle_column_frame, text="Download")
-    serial_ports_label.pack(padx=10, pady=5)
+    download_firmware_label = Label(middle_column_frame, text="Download")
+    download_firmware_label.pack(padx=10, pady=5)
     # Bouton pour connecter au programmeur
     download_button = Button(
         middle_column_frame,

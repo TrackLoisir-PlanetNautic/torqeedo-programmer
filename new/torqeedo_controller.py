@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from typing import Dict
+from esp_rom import EspRom
 
 
 class TorqeedoController(BaseModel):
@@ -16,3 +17,5 @@ class TorqeedoController(BaseModel):
     lastUpdateOTA: int
     statusId: int
     hashkey_b64: bytes = None
+    signHashKey: bytes = None
+    esp: EspRom = None

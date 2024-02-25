@@ -20,4 +20,6 @@ def open_main_frame(
     render_select_serial_device_frame(first_column_frame, torqeedo_programmer)
 
     middle_column_frame = Frame(main_frame, borderwidth=2, relief="groove")
+    middle_column_frame.pack(side="left", expand=True, fill="both")
+
     render_download_firmware_frame(middle_column_frame, torqeedo_programmer)
