@@ -104,6 +104,7 @@ def render_select_controller_frame(
             for c in torqeedo_programmer.filtered_controllers
             if c.kingwoId == selected_kingwoId
         )
+        torqeedo_programmer.firmware_download_status = "no"
         print(torqeedo_programmer.selected_controller)
 
     kingwoId_combobox.bind("<KeyRelease>", on_combobox_input)

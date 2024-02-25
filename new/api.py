@@ -107,6 +107,7 @@ class API(BaseModel):
         torqeedo_controller: TorqeedoController,
         update_dowload_firm_progress_bar: callable,
         status_label: Label,
+        firmware_download_status: str,
     ):
         try:
             print("Downloading start firmware")
@@ -127,6 +128,8 @@ class API(BaseModel):
                         status_label.config(
                             text=f"Failed to download firmware: {data['message']}"
                         )
+                        firmware_download_status = "error"
+                        return
                     torqeedo_controller.hashkey_b64 = base64.b64decode(
                         data["hashkey_b64"]
                     )
@@ -145,6 +148,7 @@ class API(BaseModel):
                 if not st_bootloader:
                     print("Failed to download bootloader")
                     status_label.config(text="Failed to download bootloader")
+                    firmware_download_status = "error"
                     return
 
                 print("Downloading st_parttable")
@@ -158,6 +162,7 @@ class API(BaseModel):
                 if not st_parttable:
                     print("Failed to download part table")
                     status_label.config(text="Failed to download part table")
+                    firmware_download_status = "error"
                     return
 
                 print("Downloading st_signedfirmware")
@@ -174,7 +179,11 @@ class API(BaseModel):
                     status_label.config(
                         text="Failed to download signed firmware"
                     )
-                status_label.config(text="Download completed successfully")
+                    firmware_download_status = "error"
+                    return
+            print("Download completed successfully")
+            status_label.config(text="Download completed successfully")
+            firmware_download_status = "yes"
         except Exception as e:
             print(e)
             return

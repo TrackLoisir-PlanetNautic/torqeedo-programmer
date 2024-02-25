@@ -26,6 +26,7 @@ def download_firmware_clicked(
     progress_var: IntVar,
     download_status_label: Label,
 ):
+    torqeedo_programmer.firmware_download_status = "in_progress"
     print("download_firmware")
     progress_var.set(0)
     asyncio.ensure_future(
@@ -33,6 +34,7 @@ def download_firmware_clicked(
             torqeedo_programmer.selected_controller,
             update_dowload_firm_progress_bar,
             download_status_label,
+            torqeedo_programmer.firmware_download_status,
         )
     )
 
@@ -75,5 +77,28 @@ def render_download_firmware_frame(
     )
     progress_bar.pack(padx=10, pady=5)
 
-    download_status_label = Label(middle_column_frame, text="Not downloaded")
+    download_status_label = Label(
+        middle_column_frame,
+        text="Veuillez sélectionner un identifiant de contrôleur",
+    )
     download_status_label.pack(padx=10, pady=5)
+
+    def check_controller_selected():
+        if torqeedo_programmer.selected_controller is None:
+            progress_var.set(0)
+            current_step.set(0)
+            download_button["state"] = "disabled"
+            download_status_label.config(
+                text="Veuillez sélectionner un identifiant de contrôleur"
+            )
+        else:
+            download_button["state"] = "normal"
+            if torqeedo_programmer.firmware_download_status == "no":
+                download_status_label.config(text="Firmware non téléchargé")
+                progress_var.set(0)
+                current_step.set(0)
+        middle_column_frame.after(
+            100, check_controller_selected
+        )  # Check every 100ms
+
+    check_controller_selected()
