@@ -55,6 +55,7 @@ from esptool.loader import (
     timeout_per_mb,
     ESPLoader,
 )
+from status import BurnHashKeyStatus
 
 CHIP_DEFS = {
     "esp8266": ESP8266ROM,
@@ -204,12 +205,16 @@ class EspRom(BaseModel):
 
     async def burn_sign_hask_key(
         self,
+        torqeedo_programmer,
         hashkey_b64: bytes,
         update_burn_hash_key_progress_bar: callable,
         burn_hash_key_status_label: Label,
     ):
         print("Start burning hash key")
         if not self.already_burned:
+            torqeedo_programmer.selected_controller.burn_hash_key_status = (
+                BurnHashKeyStatus.IN_PROGRESS
+            )
             try:
                 update_burn_hash_key_progress_bar(0)
                 self._burn_efuse(
@@ -225,14 +230,20 @@ class EspRom(BaseModel):
                     True,
                     None,
                 )
-                update_burn_hash_key_progress_bar(100)
-                burn_hash_key_status_label.config(text="Burned !")
                 time.sleep(0.25)
                 self.efuses = self.get_efuses(self.esp)
                 if self.is_the_same_block2() != 1:
                     burn_hash_key_status_label.config(
                         text="Burn key failed !!"
                     )
+                    torqeedo_programmer.selected_controller.burn_hash_key_status = (
+                        BurnHashKeyStatus.ERROR
+                    )
+                update_burn_hash_key_progress_bar(100)
+                burn_hash_key_status_label.config(text="Burned !")
+                torqeedo_programmer.selected_controller.burn_hash_key_status = (
+                    BurnHashKeyStatus.BURNED_SAME
+                )
             except Exception:
                 print("ERROR : can't burn now !")
         else:

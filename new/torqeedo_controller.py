@@ -2,34 +2,12 @@ from pydantic import BaseModel
 from typing import Optional
 from typing import Dict
 from esp_rom import EspRom
-from enum import Enum
-
-
-class DownloadFirmwareStatus(Enum):
-    NOT_STARTED = "not_started"
-    IN_PROGRESS = "in_progress"
-    ERROR = "error"
-    SUCCESS = "success"
-
-
-class BurnHashKeyStatus(Enum):
-    NOT_SCANNED = "not_scanned"
-    NOT_BURNED = "not_burned"
-    BURNED_NOT_SAME = "burned_not_same"
-    BURNED_SAME = "burned_same"
-    ERROR = "error"
-
-
-class BootloaderFlashedStatus(Enum):
-    NOT_FLASHED = "not_flashed"
-    IN_PROGRESS = "in_progress"
-    FLASHED = "flashed"
-
-
-class FirmwareFlashedStatus(Enum):
-    NOT_FLASHED = "not_flashed"
-    IN_PROGRESS = "in_progress"
-    FLASHED = "flashed"
+from status import (
+    DownloadFirmwareStatus,
+    BurnHashKeyStatus,
+    BootloaderFlashedStatus,
+    FirmwareFlashedStatus,
+)
 
 
 class TorqeedoController(BaseModel):
@@ -50,7 +28,9 @@ class TorqeedoController(BaseModel):
         DownloadFirmwareStatus.NOT_STARTED
     )
     burn_hash_key_status: BurnHashKeyStatus = BurnHashKeyStatus.NOT_SCANNED
-    bootloader_flashed: BootloaderFlashedStatus = (
+    bootloader_flashed_status: BootloaderFlashedStatus = (
         BootloaderFlashedStatus.NOT_FLASHED
     )
-    firmware_flashed: FirmwareFlashedStatus = FirmwareFlashedStatus.NOT_FLASHED
+    firmware_flashed_status: FirmwareFlashedStatus = (
+        FirmwareFlashedStatus.NOT_FLASHED
+    )

@@ -1,7 +1,7 @@
 import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
-from torqeedo_controller import BurnHashKeyStatus
+from status import BurnHashKeyStatus
 from tkinter import IntVar
 
 
@@ -15,6 +15,7 @@ def burn_hash_key_firmware_clicked(
     progress_var.set(0)
     asyncio.ensure_future(
         torqeedo_programmer.selected_controller.esp_rom.burn_sign_hask_key(
+            torqeedo_programmer,
             progress_var,
             update_burn_hash_key_progress_bar,
             burn_hash_key_status_label,

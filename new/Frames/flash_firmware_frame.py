@@ -1,5 +1,6 @@
 import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
+from status import BootloaderFlashedStatus
 from torqeedo_programmer import TorqeedoProgrammer
 from tkinter import IntVar
 from torqeedo_controller import FirmwareFlashedStatus
@@ -62,7 +63,7 @@ async def flash_firmware(
     thread.start()
     while thread.is_alive():
         await asyncio.sleep(0.1)
-    torqeedo_programmer.selected_controller.firmware_flashed = (
+    torqeedo_programmer.selected_controller.firmware_flashed_status = (
         FirmwareFlashedStatus.FLASHED
     )
 
@@ -74,7 +75,7 @@ def flash_firmware_clicked(
 ):
     progress_var.set(0)
 
-    torqeedo_programmer.selected_controller.firmware_flashed = (
+    torqeedo_programmer.selected_controller.firmware_flashed_status = (
         FirmwareFlashedStatus.IN_PROGRESS
     )
     asyncio.ensure_future(flash_firmware(torqeedo_programmer, progress_queue))
@@ -135,20 +136,31 @@ def render_flash_firmware_frame(
                 text="Non connecté à la carte electronique"
             )
         elif (
-            torqeedo_programmer.selected_controller.firmware_flashed
+            torqeedo_programmer.selected_controller.bootloader_flashed_status
+            != (BootloaderFlashedStatus.FLASHED)
+        ):
+            progress_var.set(0)
+            flash_firmware_button["state"] = "disabled"
+            flash_firmware_status_label.config(
+                text="Veuillez flasher le bootloader avant"
+            )
+        elif (
+            torqeedo_programmer.selected_controller.firmware_flashed_status
             == FirmwareFlashedStatus.NOT_FLASHED
         ):
             progress_var.set(0)
             flash_firmware_button["state"] = "normal"
             flash_firmware_status_label.config(text="Not flashed")
         elif (
-            torqeedo_programmer.selected_controller.firmware_flashed
+            torqeedo_programmer.selected_controller.firmware_flashed_status
             == FirmwareFlashedStatus.IN_PROGRESS
         ):
             flash_firmware_button["state"] = "disabled"
-            flash_firmware_status_label.config(text="In progress")
+            flash_firmware_status_label.config(
+                text="En cours (Temps estimé 1min30)"
+            )
         elif (
-            torqeedo_programmer.selected_controller.firmware_flashed
+            torqeedo_programmer.selected_controller.firmware_flashed_status
             == FirmwareFlashedStatus.FLASHED
         ):
             flash_firmware_button["state"] = "disabled"

@@ -63,7 +63,7 @@ async def flash_bootload(
     thread.start()
     while thread.is_alive():
         await asyncio.sleep(0.1)
-    torqeedo_programmer.selected_controller.bootloader_flashed = (
+    torqeedo_programmer.selected_controller.bootloader_flashed_status = (
         BootloaderFlashedStatus.FLASHED
     )
 
@@ -75,7 +75,7 @@ def flash_bootloader_clicked(
 ):
     progress_var.set(0)
 
-    torqeedo_programmer.selected_controller.bootloader_flashed = (
+    torqeedo_programmer.selected_controller.bootloader_flashed_status = (
         BootloaderFlashedStatus.IN_PROGRESS
     )
     asyncio.ensure_future(flash_bootload(torqeedo_programmer, progress_queue))
@@ -138,20 +138,20 @@ def render_flash_bootloader_frame(
                 text="Non connecté à la carte electronique"
             )
         elif (
-            torqeedo_programmer.selected_controller.bootloader_flashed
+            torqeedo_programmer.selected_controller.bootloader_flashed_status
             == BootloaderFlashedStatus.NOT_FLASHED
         ):
             progress_var.set(0)
             flash_bootloader_button["state"] = "normal"
             flash_bootloader_status_label.config(text="Not flashed")
         elif (
-            torqeedo_programmer.selected_controller.bootloader_flashed
+            torqeedo_programmer.selected_controller.bootloader_flashed_status
             == BootloaderFlashedStatus.IN_PROGRESS
         ):
             flash_bootloader_button["state"] = "disabled"
             flash_bootloader_status_label.config(text="In progress")
         elif (
-            torqeedo_programmer.selected_controller.bootloader_flashed
+            torqeedo_programmer.selected_controller.bootloader_flashed_status
             == BootloaderFlashedStatus.FLASHED
         ):
             flash_bootloader_button["state"] = "disabled"

@@ -1,6 +1,9 @@
-import asyncio
 from tkinter.ttk import Label, Button, Frame
-from torqeedo_controller import DownloadFirmwareStatus, BurnHashKeyStatus
+from status import (
+    BurnHashKeyStatus,
+    FirmwareFlashedStatus,
+    BootloaderFlashedStatus,
+)
 from torqeedo_programmer import TorqeedoProgrammer
 from esp_rom import EspRom
 import esptool
@@ -216,11 +219,15 @@ def render_test_serial_connection_frame(
                     text="Selectionnez un port série"
                 )
         else:
-            test_serial_connection_button["state"] = "normal"
-            if (
-                torqeedo_programmer.selected_controller.firmware_download_status
-                == DownloadFirmwareStatus.NOT_STARTED
+            if torqeedo_programmer.selected_controller.bootloader_flashed_status == (
+                BootloaderFlashedStatus.IN_PROGRESS
+            ) or torqeedo_programmer.selected_controller.firmware_flashed_status == (
+                FirmwareFlashedStatus.IN_PROGRESS
             ):
+                test_serial_connection_button["state"] = "disabled"
+            else:
+                test_serial_connection_button["state"] = "normal"
+            if torqeedo_programmer.selected_controller.esp_rom is None:
                 serial_connection_status_label.config(text="Not connected")
                 secure_boot_status_label.config(text="Secure boot status")
                 mac_address_label.config(text="MAC Address")

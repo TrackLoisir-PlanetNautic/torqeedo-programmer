@@ -8,7 +8,7 @@ from tkinter.ttk import (
 from tkinter import IntVar, StringVar
 import asyncio
 from torqeedo_programmer import TorqeedoProgrammer
-from torqeedo_controller import (
+from status import (
     DownloadFirmwareStatus,
     BootloaderFlashedStatus,
     BurnHashKeyStatus,
@@ -117,12 +117,12 @@ def render_select_controller_frame(
         torqeedo_programmer.selected_controller.burn_hash_key_status = (
             BurnHashKeyStatus.NOT_SCANNED
         )
-        torqeedo_programmer.selected_controller.bootloader_flashed = (
+        torqeedo_programmer.selected_controller.bootloader_flashed_status = (
             BootloaderFlashedStatus.NOT_FLASHED
         )
         torqeedo_programmer.selected_controller.esp_rom = None
         torqeedo_programmer.selected_controller.hashkey_b64 = None
-        torqeedo_programmer.selected_controller.firmware_flashed = (
+        torqeedo_programmer.selected_controller.firmware_flashed_status = (
             FirmwareFlashedStatus.NOT_FLASHED
         )
 
