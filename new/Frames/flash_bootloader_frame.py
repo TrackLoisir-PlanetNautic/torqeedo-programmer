@@ -4,6 +4,14 @@ from torqeedo_programmer import TorqeedoProgrammer
 from tkinter import IntVar
 
 
+class Dict2Class(object):
+
+    def __init__(self, my_dict):
+
+        for key in my_dict:
+            setattr(self, key, my_dict[key])
+
+
 def flash_bootloader_clicked(
     torqeedo_programmer: TorqeedoProgrammer,
     update_flash_bootloader_form_progress_bar: callable,
@@ -11,12 +19,38 @@ def flash_bootloader_clicked(
 ):
     print("flash_bootloader_clicked")
     progress_var.set(0)
-    asyncio.ensure_future(
-        torqeedo_programmer.selected_controller.esp.burn_sign_hask_key(
-            progress_var,
-            update_flash_bootloader_form_progress_bar,
+    print("part table and bootloader flash")
+
+    part_table = open("./downloads/part_table_tmp", "rb")
+    bootloader = open("./downloads/bootloader_tmp", "rb")
+
+    # Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
+    # flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
+    args = {
+        "chip": "esp32",
+        "compress": None,
+        "flash_mode": "dio",
+        "flash_freq": "80m",
+        "no_compress": False,
+        "force": True,
+        "addr_filename": [(94208, part_table), (4096, bootloader)],
+        "encrypt": None,
+        "encrypt_files": None,
+        "ignore_flash_encryption_efuse_setting": None,
+        "flash_size": "4MB",
+        "erase_all": False,
+        "no_stub": False,
+        "verify": None,
+    }
+    args = Dict2Class(args)
+    print(args)
+
+    if not torqeedo_programmer.selected_controller.esp.IS_STUB:
+        torqeedo_programmer.selected_controller.esp = (
+            torqeedo_programmer.selected_controller.esp.run_stub()
         )
-    )
+    torqeedo_programmer.selected_controller.write_flash(self.esp, args, self.bootloaderPartTableFlashProgress)
+
 
 
 def render_flash_bootloader_frame(

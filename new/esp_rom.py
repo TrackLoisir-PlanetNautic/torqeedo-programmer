@@ -1,9 +1,15 @@
 from pydantic import BaseModel
 from typing import Any, Optional
 import time
+import os
 from tkinter.ttk import Label
 
 import esptool
+import struct
+import io
+import hashlib
+import zlib
+import sys
 
 from esptool.targets.esp32 import ESP32ROM
 from esptool.targets.esp32c2 import ESP32C2ROM
@@ -33,6 +39,21 @@ from collections import namedtuple
 
 from esptool.util import (
     hexify,
+    flash_size_bytes,
+    div_roundup,
+    pad_to,
+    print_overwrite,
+    timeout_per_mb,
+)
+
+from esptool.cmds import erase_flash, verify_flash
+
+from esptool.bin_image import LoadFirmwareImage
+
+from esptool.loader import (
+    DEFAULT_TIMEOUT,
+    ERASE_WRITE_TIMEOUT_PER_MB,
+    ESPLoader,
 )
 
 CHIP_DEFS = {
@@ -127,11 +148,10 @@ class EspRom(BaseModel):
             print(err)
 
     def is_abs_done_fuse_ok(self):
-        print("Checking abs done fuse")
         for efu in self.efuses[0].efuses:
             if efu.name == "ABS_DONE_1":
-                print(efu.name)
-                print(efu.get())
+                # print(efu.name)
+                # print(efu.get())
                 return efu.get()
         return False
 
@@ -391,3 +411,475 @@ class EspRom(BaseModel):
         if not efuses.burn_all(check_batch_mode=True):
             return
         print("Successful")
+
+    def _update_image_flash_params(self, address, args, image):
+        """
+        Modify the flash mode & size bytes if this looks like an executable bootloader image
+        """
+        if len(image) < 8:
+            return image  # not long enough to be a bootloader image
+
+        # unpack the (potential) image header
+        magic, _, flash_mode, flash_size_freq = struct.unpack(
+            "BBBB", image[:4]
+        )
+        if address != self.esp.BOOTLOADER_FLASH_OFFSET:
+            return (
+                image  # not flashing bootloader offset, so don't modify this
+            )
+
+        if (args.flash_mode, args.flash_freq, args.flash_size) == (
+            "keep",
+        ) * 3:
+            return image  # all settings are 'keep', not modifying anything
+
+        # easy check if this is an image: does it start with a magic byte?
+        if magic != self.esp.ESP_IMAGE_MAGIC:
+            print(
+                "Warning: Image file at 0x%x doesn't look like an image file, "
+                "so not changing any flash settings." % address
+            )
+            return image
+
+        # make sure this really is an image, and not just data that
+        # starts with esp.ESP_IMAGE_MAGIC (mostly a problem for encrypted
+        # images that happen to start with a magic byte
+        try:
+            test_image = self.esp.BOOTLOADER_IMAGE(io.BytesIO(image))
+            test_image.verify()
+        except Exception:
+            print(
+                "Warning: Image file at 0x%x is not a valid %s image, "
+                "so not changing any flash settings."
+                % (address, self.esp.CHIP_NAME)
+            )
+            return image
+
+        # After the 8-byte header comes the extended header for chips others than ESP8266.
+        # The 15th byte of the extended header indicates if the image is protected by
+        # a SHA256 checksum. In that case we should not modify the header because
+        # the checksum check would fail.
+        sha_implies_keep = args.chip != "esp8266" and image[8 + 15] == 1
+
+        def print_keep_warning(arg_to_keep, arg_used):
+            print(
+                "Warning: Image file at {addr} is protected with a hash checksum, "
+                "so not changing the flash {arg} setting. "
+                "Use the --flash_{arg}=keep option instead of --flash_{arg}={arg_orig} "
+                "in order to remove this warning, or use the --dont-append-digest option "
+                "for the elf2image command in order to generate an image file "
+                "without a hash checksum".format(
+                    addr=hex(address), arg=arg_to_keep, arg_orig=arg_used
+                )
+            )
+
+        if args.flash_mode != "keep":
+            new_flash_mode = FLASH_MODES[args.flash_mode]
+            if flash_mode != new_flash_mode and sha_implies_keep:
+                print_keep_warning("mode", args.flash_mode)
+            else:
+                flash_mode = new_flash_mode
+
+        flash_freq = flash_size_freq & 0x0F
+        if args.flash_freq != "keep":
+            new_flash_freq = self.esp.parse_flash_freq_arg(args.flash_freq)
+            if flash_freq != new_flash_freq and sha_implies_keep:
+                print_keep_warning("frequency", args.flash_freq)
+            else:
+                flash_freq = new_flash_freq
+
+        flash_size = flash_size_freq & 0xF0
+        if args.flash_size != "keep":
+            new_flash_size = self.esp.parse_flash_size_arg(args.flash_size)
+            if flash_size != new_flash_size and sha_implies_keep:
+                print_keep_warning("size", args.flash_size)
+            else:
+                flash_size = new_flash_size
+
+        flash_params = struct.pack(b"BB", flash_mode, flash_size + flash_freq)
+        if flash_params != image[2:4]:
+            print(
+                "Flash params set to 0x%04x"
+                % struct.unpack(">H", flash_params)
+            )
+            image = image[0:2] + flash_params + image[4:]
+        return image
+
+    def write_flash(self, args, progressBar):
+        # set args.compress based on default behaviour:
+        # -> if either --compress or --no-compress is set, honour that
+        # -> otherwise, set --compress unless --no-stub is set
+        if args.compress is None and not args.no_compress:
+            args.compress = not args.no_stub
+
+        if (
+            not args.force
+            and self.esp.CHIP_NAME != "ESP8266"
+            and not self.esp.secure_download_mode
+        ):
+            # Check if secure boot is active
+            if self.esp.get_secure_boot_enabled():
+                for address, _ in args.addr_filename:
+                    if address < 0x8000:
+                        raise esptool.FatalError(
+                            "Secure Boot detected, writing to flash regions < 0x8000 "
+                            "is disabled to protect the bootloader. "
+                            "Use --force to override, "
+                            "please use with caution, otherwise it may brick your device!"
+                        )
+            # Check if chip_id and min_rev in image are valid for the target in use
+            for _, argfile in args.addr_filename:
+                try:
+                    image = LoadFirmwareImage(self.esp.CHIP_NAME, argfile)
+                except (esptool.FatalError, struct.error, RuntimeError):
+                    continue
+                finally:
+                    argfile.seek(
+                        0
+                    )  # LoadFirmwareImage changes the file handle position
+                if image.chip_id != self.esp.IMAGE_CHIP_ID:
+                    raise esptool.FatalError(
+                        f"{argfile.name} is not an {self.esp.CHIP_NAME} image."
+                        "Use --force to flash anyway."
+                    )
+
+                # this logic below decides which min_rev to use, min_rev or min/max_rev_full
+                if (
+                    image.max_rev_full == 0
+                ):  # image does not have max/min_rev_full fields
+                    use_rev_full_fields = False
+                elif (
+                    image.max_rev_full == 65535
+                ):  # image has default value of max_rev_full
+                    if (
+                        image.min_rev_full == 0 and image.min_rev != 0
+                    ):  # min_rev_full is not set, min_rev is used
+                        use_rev_full_fields = False
+                    use_rev_full_fields = True
+                else:  # max_rev_full set to a version
+                    use_rev_full_fields = True
+
+                if use_rev_full_fields:
+                    rev = self.esp.get_chip_revision()
+                    if rev < image.min_rev_full or rev > image.max_rev_full:
+                        error_str = (
+                            f"{argfile.name} requires chip revision in range "
+                        )
+                        error_str += f"[v{image.min_rev_full // 100}.{image.min_rev_full % 100} - "
+                        if image.max_rev_full == 65535:
+                            error_str += "max rev not set] "
+                        else:
+                            error_str += f"v{image.max_rev_full // 100}.{image.max_rev_full % 100}] "
+                        error_str += f"(this chip is revision v{rev // 100}.{rev % 100})"
+                        raise esptool.FatalError(
+                            f"{error_str}. Use --force to flash anyway."
+                        )
+                else:
+                    # In IDF, image.min_rev is set based on Kconfig option.
+                    # For C3 chip, image.min_rev is the Minor revision
+                    # while for the rest chips it is the Major revision.
+                    if self.esp.CHIP_NAME == "ESP32-C3":
+                        rev = self.esp.get_minor_chip_version()
+                    else:
+                        rev = self.esp.get_major_chip_version()
+                    if rev < image.min_rev:
+                        raise esptool.FatalError(
+                            f"{argfile.name} requires chip revision "
+                            f"{image.min_rev} or higher (this chip is revision {rev}). "
+                            "Use --force to flash anyway."
+                        )
+
+        # In case we have encrypted files to write,
+        # we first do few sanity checks before actual flash
+        if args.encrypt or args.encrypt_files is not None:
+            do_write = True
+
+            if not self.esp.secure_download_mode:
+                if self.esp.get_encrypted_download_disabled():
+                    raise esptool.FatalError(
+                        "This chip has encrypt functionality "
+                        "in UART download mode disabled. "
+                        "This is the Flash Encryption configuration for Production mode "
+                        "instead of Development mode."
+                    )
+
+                crypt_cfg_efuse = self.esp.get_flash_crypt_config()
+
+                if crypt_cfg_efuse is not None and crypt_cfg_efuse != 0xF:
+                    print(
+                        "Unexpected FLASH_CRYPT_CONFIG value: 0x%x"
+                        % (crypt_cfg_efuse)
+                    )
+                    do_write = False
+
+                enc_key_valid = self.esp.is_flash_encryption_key_valid()
+
+                if not enc_key_valid:
+                    print("Flash encryption key is not programmed")
+                    do_write = False
+
+            # Determine which files list contain the ones to encrypt
+            files_to_encrypt = (
+                args.addr_filename if args.encrypt else args.encrypt_files
+            )
+
+            for address, argfile in files_to_encrypt:
+                if address % self.esp.FLASH_ENCRYPTED_WRITE_ALIGN:
+                    print(
+                        "File %s address 0x%x is not %d byte aligned, can't flash encrypted"
+                        % (
+                            argfile.name,
+                            address,
+                            self.esp.FLASH_ENCRYPTED_WRITE_ALIGN,
+                        )
+                    )
+                    do_write = False
+
+            if not do_write and not args.ignore_flash_encryption_efuse_setting:
+                raise esptool.FatalError(
+                    "Can't perform encrypted flash write, "
+                    "consult Flash Encryption documentation for more information"
+                )
+
+        # verify file sizes fit in flash
+        if args.flash_size != "keep":  # TODO: check this even with 'keep'
+            flash_end = flash_size_bytes(args.flash_size)
+            for address, argfile in args.addr_filename:
+                argfile.seek(0, os.SEEK_END)
+                if address + argfile.tell() > flash_end:
+                    raise esptool.FatalError(
+                        "File %s (length %d) at offset %d "
+                        "will not fit in %d bytes of flash. "
+                        "Use --flash_size argument, or change flashing address."
+                        % (argfile.name, argfile.tell(), address, flash_end)
+                    )
+                argfile.seek(0)
+
+        if args.erase_all:
+            erase_flash(self.esp, args)
+        else:
+            for address, argfile in args.addr_filename:
+                argfile.seek(0, os.SEEK_END)
+                write_end = address + argfile.tell()
+                argfile.seek(0)
+                bytes_over = address % self.esp.FLASH_SECTOR_SIZE
+                if bytes_over != 0:
+                    print(
+                        "WARNING: Flash address {:#010x} is not aligned "
+                        "to a {:#x} byte flash sector. "
+                        "{:#x} bytes before this address will be erased.".format(
+                            address, self.esp.FLASH_SECTOR_SIZE, bytes_over
+                        )
+                    )
+                # Print the address range of to-be-erased flash memory region
+                print(
+                    "Flash will be erased from {:#010x} to {:#010x}...".format(
+                        address - bytes_over,
+                        div_roundup(write_end, self.esp.FLASH_SECTOR_SIZE)
+                        * self.esp.FLASH_SECTOR_SIZE
+                        - 1,
+                    )
+                )
+
+        """ Create a list describing all the files we have to flash.
+        Each entry holds an "encrypt" flag marking whether the file needs encryption or not.
+        This list needs to be sorted.
+
+        First, append to each entry of our addr_filename list the flag args.encrypt
+        E.g., if addr_filename is [(0x1000, "partition.bin"), (0x8000, "bootloader")],
+        all_files will be [
+            (0x1000, "partition.bin", args.encrypt),
+            (0x8000, "bootloader", args.encrypt)
+            ],
+        where, of course, args.encrypt is either True or False
+        """
+        all_files = [
+            (offs, filename, args.encrypt)
+            for (offs, filename) in args.addr_filename
+        ]
+        """
+        Now do the same with encrypt_files list, if defined.
+        In this case, the flag is True
+        """
+        if args.encrypt_files is not None:
+            encrypted_files_flag = [
+                (offs, filename, True)
+                for (offs, filename) in args.encrypt_files
+            ]
+
+            # Concatenate both lists and sort them.
+            # As both list are already sorted, we could simply do a merge instead,
+            # but for the sake of simplicity and because the lists are very small,
+            # let's use sorted.
+            all_files = sorted(
+                all_files + encrypted_files_flag, key=lambda x: x[0]
+            )
+
+        for address, argfile, encrypted in all_files:
+            compress = args.compress
+
+            # Check whether we can compress the current file before flashing
+            if compress and encrypted:
+                print(
+                    "\nWARNING: - compress and encrypt options are mutually exclusive "
+                )
+                print("Will flash %s uncompressed" % argfile.name)
+                compress = False
+
+            if args.no_stub:
+                print("Erasing flash...")
+            image = pad_to(
+                argfile.read(),
+                self.esp.FLASH_ENCRYPTED_WRITE_ALIGN if encrypted else 4,
+            )
+            if len(image) == 0:
+                print("WARNING: File %s is empty" % argfile.name)
+                continue
+            image = self._update_image_flash_params(address, args, image)
+            calcmd5 = hashlib.md5(image).hexdigest()
+            uncsize = len(image)
+            if compress:
+                uncimage = image
+                image = zlib.compress(uncimage, 9)
+                # Decompress the compressed binary a block at a time,
+                # to dynamically calculate the timeout based on the real write size
+                decompress = zlib.decompressobj()
+                blocks = self.esp.flash_defl_begin(
+                    uncsize, len(image), address
+                )
+            else:
+                blocks = self.esp.flash_begin(
+                    uncsize, address, begin_rom_encrypted=encrypted
+                )
+            argfile.seek(0)  # in case we need it again
+            seq = 0
+            bytes_sent = 0  # bytes sent on wire
+            bytes_written = 0  # bytes written to flash
+            t = time.time()
+
+            timeout = DEFAULT_TIMEOUT
+
+            while len(image) > 0:
+                progressBar.setValue(100 * (seq + 1) // blocks)
+                print(100 * (seq + 1) // blocks)
+                print_overwrite(
+                    "Writing at 0x%08x... (%d %%)"
+                    % (address + bytes_written, 100 * (seq + 1) // blocks)
+                )
+                sys.stdout.flush()
+                block = image[0 : self.esp.FLASH_WRITE_SIZE]
+                if compress:
+                    # feeding each compressed block into the decompressor lets us
+                    # see block-by-block how much will be written
+                    block_uncompressed = len(decompress.decompress(block))
+                    bytes_written += block_uncompressed
+                    block_timeout = max(
+                        DEFAULT_TIMEOUT,
+                        timeout_per_mb(
+                            ERASE_WRITE_TIMEOUT_PER_MB, block_uncompressed
+                        ),
+                    )
+                    if not self.esp.IS_STUB:
+                        timeout = block_timeout  # ROM code writes block to flash before ACKing
+                    self.esp.flash_defl_block(block, seq, timeout=timeout)
+                    if self.esp.IS_STUB:
+                        # Stub ACKs when block is received,
+                        # then writes to flash while receiving the block after it
+                        timeout = block_timeout
+                else:
+                    # Pad the last block
+                    block = block + b"\xff" * (
+                        self.esp.FLASH_WRITE_SIZE - len(block)
+                    )
+                    if encrypted:
+                        self.esp.flash_encrypt_block(block, seq)
+                    else:
+                        self.esp.flash_block(block, seq)
+                    bytes_written += len(block)
+                bytes_sent += len(block)
+                image = image[self.esp.FLASH_WRITE_SIZE :]
+                seq += 1
+
+            if self.esp.IS_STUB:
+                # Stub only writes each block to flash after 'ack'ing the receive,
+                # so do a final dummy operation which will not be 'ack'ed
+                # until the last block has actually been written out to flash
+                self.esp.read_reg(
+                    ESPLoader.CHIP_DETECT_MAGIC_REG_ADDR, timeout=timeout
+                )
+
+            t = time.time() - t
+            speed_msg = ""
+            if compress:
+                if t > 0.0:
+                    speed_msg = " (effective %.1f kbit/s)" % (
+                        uncsize / t * 8 / 1000
+                    )
+                print_overwrite(
+                    "Wrote %d bytes (%d compressed) at 0x%08x in %.1f seconds%s..."
+                    % (uncsize, bytes_sent, address, t, speed_msg),
+                    last_line=True,
+                )
+            else:
+                if t > 0.0:
+                    speed_msg = " (%.1f kbit/s)" % (
+                        bytes_written / t * 8 / 1000
+                    )
+                print_overwrite(
+                    "Wrote %d bytes at 0x%08x in %.1f seconds%s..."
+                    % (bytes_written, address, t, speed_msg),
+                    last_line=True,
+                )
+
+            if not encrypted and not self.esp.secure_download_mode:
+                try:
+                    res = self.esp.flash_md5sum(address, uncsize)
+                    if res != calcmd5:
+                        print("File  md5: %s" % calcmd5)
+                        print("Flash md5: %s" % res)
+                        print(
+                            "MD5 of 0xFF is %s"
+                            % (hashlib.md5(b"\xFF" * uncsize).hexdigest())
+                        )
+                        raise esptool.FatalError(
+                            "MD5 of file does not match data in flash!"
+                        )
+                    else:
+                        print("Hash of data verified.")
+                except esptool.NotImplementedInROMError:
+                    pass
+
+        print("\nLeaving...")
+
+        if self.esp.IS_STUB:
+            # skip sending flash_finish to ROM loader here,
+            # as it causes the loader to exit and run user code
+            self.esp.flash_begin(0, 0)
+
+            # Get the "encrypted" flag for the last file flashed
+            # Note: all_files list contains triplets like:
+            # (address: Integer, filename: String, encrypted: Boolean)
+            last_file_encrypted = all_files[-1][2]
+
+            # Check whether the last file flashed was compressed or not
+            if args.compress and not last_file_encrypted:
+                self.esp.flash_defl_finish(False)
+            else:
+                self.esp.flash_finish(False)
+
+        if args.verify:
+            print("Verifying just-written flash...")
+            print(
+                "(This option is deprecated, "
+                "flash contents are now always read back after flashing.)"
+            )
+            # If some encrypted files have been flashed,
+            # print a warning saying that we won't check them
+            if args.encrypt or args.encrypt_files is not None:
+                print(
+                    "WARNING: - cannot verify encrypted files, they will be ignored"
+                )
+            # Call verify_flash function only if there is at least
+            # one non-encrypted file flashed
+            if not args.encrypt:
+                verify_flash(self.esp, args)
