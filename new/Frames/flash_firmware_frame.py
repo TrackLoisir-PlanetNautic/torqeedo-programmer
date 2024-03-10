@@ -25,7 +25,9 @@ async def flash_firmware(
     # Namespace(chip='auto', port=None, baud=460800, before='default_reset', after='hard_reset', no_stub=False, trace=False, override_vddsdio=None, connect_attempts=7, operation='write_flash', addr_filename=[(131072, <_io.BufferedReader name='firmware_tmp'>)], erase_all=False,
     # flash_freq='80m', flash_mode='dio', flash_size='4MB', spi_connection=None, no_progress=False, verify=False, encrypt=False, encrypt_files=None, ignore_flash_encryption_efuse_setting=False, force=False, compress=None, no_compress=False)
     args = {
-        "compress": None,
+        "baud": 1000000,  # VICTOR
+        "compress": True,  # VICTOR
+        "flash_size": "16MB",  # VICTOR 4MB -> 16MB
         "flash_mode": "dio",
         "flash_freq": "80m",
         "no_compress": False,
@@ -34,7 +36,6 @@ async def flash_firmware(
         "encrypt": None,
         "encrypt_files": None,
         "ignore_flash_encryption_efuse_setting": None,
-        "flash_size": "4MB",
         "erase_all": False,
         "no_stub": False,
         "verify": None,
