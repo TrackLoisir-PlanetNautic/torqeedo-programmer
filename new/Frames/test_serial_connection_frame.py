@@ -159,7 +159,12 @@ def click_test_serial_connection(
     else:
         print("No esp connected")
         serial_connection_status_label.config(
-            text="Connexion failed. Make sure the ESP is connected and try again."
+            text="Erreur de connexion, vérifiez le branchement"
+        )
+        torqeedo_programmer.selected_controller.esp = None
+        torqeedo_programmer.selected_controller.hashkey_b64 = None
+        torqeedo_programmer.selected_controller.burn_hash_key_status = (
+            BurnHashKeyStatus.NOT_SCANNED
         )
 
 
@@ -201,11 +206,21 @@ def render_test_serial_connection_frame(
     mac_address_label.pack(padx=10, pady=5)
 
     def check_controller_selected():
-        if torqeedo_programmer.selected_controller is None:
+        if (
+            torqeedo_programmer.selected_controller is None
+            or torqeedo_programmer.selected_serial_port is None
+        ):
             test_serial_connection_button["state"] = "disabled"
-            serial_connection_status_label.config(text="Not connected")
             secure_boot_status_label.config(text="Secure boot status")
             mac_address_label.config(text="MAC Address")
+            if torqeedo_programmer.selected_controller is None:
+                serial_connection_status_label.config(
+                    text="Selectionnez un identifiant"
+                )
+            else:
+                serial_connection_status_label.config(
+                    text="Selectionnez un port série"
+                )
         else:
             test_serial_connection_button["state"] = "normal"
             if (

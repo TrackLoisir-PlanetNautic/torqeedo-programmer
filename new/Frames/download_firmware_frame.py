@@ -37,20 +37,12 @@ def render_download_firmware_frame(
     step_progress.set(0)
 
     def update_dowload_firm_progress_bar(chunk_size, total_length, step):
-        print("=========")
         if step != current_step.get():
-            print("new step", step)
-            print("old step", current_step.get())
             current_step.set(step)
             step_progress.set(0)
         current_chunck = step_progress.get()
-        print(chunk_size * 100 / total_length)
         step_progress.set((current_chunck + chunk_size * 100 / total_length))
-        print(step_progress.get())
-        print(current_step.get() * 25)
-        print(step_progress.get() / 4)
         progress_var.set(current_step.get() * 25 + step_progress.get() / 4)
-        print(progress_var.get())
 
     download_firmware_label = Label(middle_column_frame, text="Download")
     download_firmware_label.pack(padx=10, pady=5)
