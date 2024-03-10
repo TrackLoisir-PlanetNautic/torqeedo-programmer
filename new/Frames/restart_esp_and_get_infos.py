@@ -123,7 +123,7 @@ def render_restart_esp_and_get_infos_frame(
             torqeedo_programmer,
         ),
     )
-    restart_esp_and_get_infos_button.pack(padx=10, pady=10)
+    restart_esp_and_get_infos_button.grid(row=13, column=0, columnspan=2, padx=10, pady=5)
 
     def restart_esp_and_get_infos_status():
         if (

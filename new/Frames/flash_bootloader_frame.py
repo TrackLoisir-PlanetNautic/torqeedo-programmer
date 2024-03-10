@@ -114,10 +114,6 @@ def render_flash_bootloader_frame(
     progress_var = IntVar()
     progress_var.set(0)
 
-    flash_bootloader_label = Label(
-        middle_column_frame, text="Flash bootloader and part table"
-    )
-    flash_bootloader_label.pack(padx=10, pady=5)
     # Bouton pour connecter au programmeur
     progress_queue = queue.Queue()
 
@@ -130,20 +126,23 @@ def render_flash_bootloader_frame(
             progress_var,
         ),
     )
-    flash_bootloader_button.pack(padx=10, pady=10)
-    progress_bar = Progressbar(
-        middle_column_frame,
-        orient="horizontal",
-        length=200,
-        mode="determinate",
-        variable=progress_var,
-    )
-    progress_bar.pack(padx=10, pady=5)
+    flash_bootloader_button.grid(row=9, column=0, padx=10, pady=10, sticky="W")
 
     flash_bootloader_status_label = Label(
         middle_column_frame, text="Not flashed"
     )
-    flash_bootloader_status_label.pack(padx=10, pady=5)
+    flash_bootloader_status_label.grid(
+        row=9, column=1, padx=10, pady=10, sticky="E"
+    )
+
+    progress_bar = Progressbar(
+        middle_column_frame,
+        orient="horizontal",
+        length=300,
+        mode="determinate",
+        variable=progress_var,
+    )
+    progress_bar.grid(row=10, column=0, columnspan=2, padx=10, pady=5)
 
     def check_flash_bootloader_status():
         try:

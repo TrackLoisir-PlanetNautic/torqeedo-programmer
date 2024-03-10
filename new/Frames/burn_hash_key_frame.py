@@ -34,10 +34,6 @@ def render_burn_hash_key_frame(
     def update_burn_hash_key_form_progress_bar(value):
         progress_var.set(value)
 
-    burn_hash_key_firmware_label = Label(
-        middle_column_frame, text="Burn Sign hash key"
-    )
-    burn_hash_key_firmware_label.pack(padx=10, pady=5)
     # Bouton pour connecter au programmeur
     burn_hash_key_button = Button(
         middle_column_frame,
@@ -49,21 +45,24 @@ def render_burn_hash_key_frame(
             burn_hash_key_status_label,
         ),
     )
-    burn_hash_key_button.pack(padx=10, pady=10)
-    progress_bar = Progressbar(
-        middle_column_frame,
-        orient="horizontal",
-        length=200,
-        mode="determinate",
-        variable=progress_var,
-    )
-    progress_bar.pack(padx=10, pady=5)
+    burn_hash_key_button.grid(row=7, column=0, padx=10, pady=10, sticky="W")
 
     burn_hash_key_status_label = Label(
         middle_column_frame,
         text=burn_hash_key_text,
     )
-    burn_hash_key_status_label.pack(padx=10, pady=5)
+    burn_hash_key_status_label.grid(
+        row=7, column=1, padx=10, pady=10, sticky="E"
+    )
+
+    progress_bar = Progressbar(
+        middle_column_frame,
+        orient="horizontal",
+        length=300,
+        mode="determinate",
+        variable=progress_var,
+    )
+    progress_bar.grid(row=8, column=0, columnspan=2, padx=10, pady=5)
 
     kingwo_id_of_hash_key: str = None
 

@@ -185,10 +185,6 @@ def render_test_serial_connection_frame(
     burn_hash_key_text: str,
 ):
 
-    test_serial_connection_label = Label(
-        middle_column_frame, text="Test de connexion"
-    )
-    test_serial_connection_label.pack(padx=10, pady=5)
     test_serial_connection_button = Button(
         middle_column_frame,
         text="Test serial connection",
@@ -199,20 +195,26 @@ def render_test_serial_connection_frame(
             burn_hash_key_text,
         ),
     )
-    test_serial_connection_button.pack(padx=10, pady=10)
+    test_serial_connection_button.grid(
+        row=3, column=0, columnspan=2, padx=10, pady=5
+    )
 
     serial_connection_status_label = Label(
         middle_column_frame, text="Aucune carte électronique connectée"
     )
-    serial_connection_status_label.pack(padx=10, pady=5)
+    serial_connection_status_label.grid(
+        row=4, column=0, columnspan=2, padx=10, pady=5
+    )
 
     secure_boot_status_label = Label(
         middle_column_frame, text="Secure boot status"
     )
-    secure_boot_status_label.pack(padx=10, pady=5)
+    secure_boot_status_label.grid(
+        row=5, column=0, columnspan=2, padx=10, pady=5
+    )
 
     mac_address_label = Label(middle_column_frame, text="MAC Address")
-    mac_address_label.pack(padx=10, pady=5)
+    mac_address_label.grid(row=6, column=0, columnspan=2, padx=10, pady=5)
 
     def check_controller_selected():
         if (

@@ -44,9 +44,6 @@ def render_download_firmware_frame(
         step_progress.set((current_chunck + chunk_size * 100 / total_length))
         progress_var.set(current_step.get() * 25 + step_progress.get() / 4)
 
-    download_firmware_label = Label(middle_column_frame, text="Download")
-    download_firmware_label.pack(padx=10, pady=5)
-    # Bouton pour connecter au programmeur
     download_button = Button(
         middle_column_frame,
         text="Télécharger le firmware",
@@ -57,21 +54,22 @@ def render_download_firmware_frame(
             download_status_label,
         ),
     )
-    download_button.pack(padx=10, pady=10)
-    progress_bar = Progressbar(
-        middle_column_frame,
-        orient="horizontal",
-        length=200,
-        mode="determinate",
-        variable=progress_var,
-    )
-    progress_bar.pack(padx=10, pady=5)
+    download_button.grid(row=0, column=0, padx=10, pady=10, sticky="W")
 
     download_status_label = Label(
         middle_column_frame,
         text="Veuillez sélectionner un identifiant de contrôleur",
     )
-    download_status_label.pack(padx=10, pady=5)
+    download_status_label.grid(row=0, column=1, padx=10, pady=10, sticky="E")
+
+    progress_bar = Progressbar(
+        middle_column_frame,
+        orient="horizontal",
+        length=300,
+        mode="determinate",
+        variable=progress_var,
+    )
+    progress_bar.grid(row=1, column=0, columnspan=2, padx=10, pady=5)
 
     def check_controller_selected():
         if torqeedo_programmer.selected_controller is None:
