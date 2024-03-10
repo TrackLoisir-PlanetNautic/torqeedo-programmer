@@ -10,4 +10,3 @@ class TorqeedoProgrammer(BaseModel):
     filtered_controllers: list[TorqeedoController] = []
     selected_controller: TorqeedoController = None
     selected_serial_port: str = None
-    compilation_result: CompilationResult = None

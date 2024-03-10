@@ -902,3 +902,8 @@ class EspRom(BaseModel):
             # one non-encrypted file flashed
             if not args.encrypt:
                 verify_flash(self.esp, args)
+
+    def restart(self):
+        print("Restarting esp")
+        self.esp.hard_reset()
+        print("Restarted")
