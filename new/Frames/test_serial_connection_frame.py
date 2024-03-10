@@ -167,7 +167,6 @@ def render_test_serial_connection_frame(
     middle_column_frame: Frame,
     torqeedo_programmer: TorqeedoProgrammer,
     burn_hash_key_text: str,
-    secure_boot_status_text: str,
 ):
 
     test_serial_connection_label = Label(
@@ -193,7 +192,7 @@ def render_test_serial_connection_frame(
     serial_connection_status_label.pack(padx=10, pady=5)
 
     secure_boot_status_label = Label(
-        middle_column_frame, text=secure_boot_status_text
+        middle_column_frame, text="Secure boot status"
     )
     secure_boot_status_label.pack(padx=10, pady=5)
 
@@ -227,7 +226,7 @@ def render_test_serial_connection_frame(
                 mac_address_label.config(text="MAC Address")
                 torqeedo_programmer.selected_controller.esp = None
                 torqeedo_programmer.selected_controller.hashkey_b64 = None
-        if torqeedo_programmer.selected_controller.esp is not None:
+        if torqeedo_programmer.selected_controller is not None and torqeedo_programmer.selected_controller.esp is not None:
             secure_boot_status_text = "Secure boot ok : " + str(
                 torqeedo_programmer.selected_controller.esp.is_abs_done_fuse_ok()
             )
