@@ -17,5 +17,4 @@ class TorqeedoController(BaseModel):
     lastUpdateOTA: int
     statusId: int
     hashkey_b64: bytes = None
-    signHashKey: bytes = None
     esp: EspRom = None

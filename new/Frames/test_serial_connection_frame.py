@@ -128,13 +128,11 @@ def click_test_serial_connection(
         )
 
         if is_the_same_block2 == 1:
-            burn_hash_key_status_label = "Already Burned (same)"
+            burn_hash_key_status_label = "Hash key : Already Burned (same)"
             esp_rom.already_burned = True
             esp_rom.is_same_hash_key = True
         elif is_the_same_block2 == 0:
-            burn_hash_key_status_label = (
-                "Already Burned (not the same), searching for kingwo id..."
-            )
+            burn_hash_key_status_label = "Hash key : Already Burned (not the same), searching for kingwo id..."
             esp_rom.already_burned = True
             esp_rom.is_same_hash_key = False
             asyncio.ensure_future(
@@ -144,11 +142,13 @@ def click_test_serial_connection(
                 )
             )
         elif is_the_same_block2 == -2:
-            burn_hash_key_status_label = "Error, try download content button"
+            burn_hash_key_status_label = (
+                "Hash key : Error, try download content button"
+            )
             esp_rom.already_burned = False
             esp_rom.is_same_hash_key = False
         else:
-            burn_hash_key_status_label.config = "Not burned"
+            burn_hash_key_status_label.config = "Hash key : Not burned"
             esp_rom.already_burned = False
             esp_rom.is_same_hash_key = False
         print(burn_hash_key_status_label)
@@ -198,3 +198,24 @@ def render_test_serial_connection_frame(
 
     mac_address_label = Label(middle_column_frame, text="MAC Address")
     mac_address_label.pack(padx=10, pady=5)
+
+    def check_controller_selected():
+        if torqeedo_programmer.selected_controller is None:
+            test_serial_connection_button["state"] = "disabled"
+            serial_connection_status_label.config(text="Not connected")
+            secure_boot_status_label.config(text="Secure boot status")
+            mac_address_label.config(text="MAC Address")
+        else:
+            test_serial_connection_button["state"] = "normal"
+            if torqeedo_programmer.firmware_download_status == "no":
+                serial_connection_status_label.config(text="Not connected")
+                secure_boot_status_label.config(text="Secure boot status")
+                mac_address_label.config(text="MAC Address")
+                torqeedo_programmer.selected_controller.esp = None
+                torqeedo_programmer.selected_controller.hashkey_b64 = None
+                
+        middle_column_frame.after(
+            100, check_controller_selected
+        )  # Check every 100ms
+
+    check_controller_selected()
