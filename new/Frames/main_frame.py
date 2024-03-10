@@ -8,6 +8,7 @@ from Frames.test_serial_connection_frame import (
     render_test_serial_connection_frame,
 )
 from Frames.burn_hash_key_frame import render_burn_hash_key_frame
+from Frames.flash_bootloader_frame import render_flash_bootloader_frame
 
 
 def open_main_frame(
@@ -32,4 +33,8 @@ def open_main_frame(
         middle_column_frame, torqeedo_programmer, burn_hash_key_text
     )
 
-    render_burn_hash_key_frame(middle_column_frame, torqeedo_programmer, burn_hash_key_text)
+    render_burn_hash_key_frame(
+        middle_column_frame, torqeedo_programmer, burn_hash_key_text
+    )
+
+    render_flash_bootloader_frame(middle_column_frame, torqeedo_programmer)

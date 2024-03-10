@@ -30,7 +30,7 @@ def render_burn_hash_key_frame(
     progress_var = IntVar()
     progress_var.set(0)
 
-    def update_burn_hash_key_firm_progress_bar(value):
+    def update_burn_hash_key_form_progress_bar(value):
         progress_var.set(value)
 
     burn_hash_key_firmware_label = Label(
@@ -43,7 +43,7 @@ def render_burn_hash_key_frame(
         text="Burn sign hash key",
         command=lambda: burn_hash_key_firmware_clicked(
             torqeedo_programmer,
-            update_burn_hash_key_firm_progress_bar,
+            update_burn_hash_key_form_progress_bar,
             progress_var,
             burn_hash_key_status_label,
         ),
