@@ -762,9 +762,12 @@ class EspRom(BaseModel):
             timeout = DEFAULT_TIMEOUT
 
             while len(image) > 0:
-                update_flash_bootloader_form_progress_bar(
-                    100 * (seq + 1) // blocks
-                )
+                if blocks > 1:
+                    update_flash_bootloader_form_progress_bar(
+                        100 * (seq + 1) // blocks
+                    )
+                else:
+                    update_flash_bootloader_form_progress_bar(0)
                 # progressBar.setValue(100 * (seq + 1) // blocks)
                 print(100 * (seq + 1) // blocks)
                 print_overwrite(
