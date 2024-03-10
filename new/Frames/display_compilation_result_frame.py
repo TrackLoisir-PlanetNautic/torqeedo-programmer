@@ -34,6 +34,7 @@ def render_display_compilation_result_frame(
             )
             for line in compilation_result.lines:
                 compilation_result_label.config(text=line)
+            # todo display a messagebox error if kingwoId not the same as the one in the firmware
 
         right_column_frame.after(
             100, restart_esp_and_get_infos_status
