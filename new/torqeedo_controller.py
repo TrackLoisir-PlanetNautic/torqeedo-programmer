@@ -26,6 +26,12 @@ class BootloaderFlashedStatus(Enum):
     FLASHED = "flashed"
 
 
+class FirmwareFlashedStatus(Enum):
+    NOT_FLASHED = "not_flashed"
+    IN_PROGRESS = "in_progress"
+    FLASHED = "flashed"
+
+
 class TorqeedoController(BaseModel):
     torqCtrlId: int
     lastPing: int
@@ -47,3 +53,4 @@ class TorqeedoController(BaseModel):
     bootloader_flashed: BootloaderFlashedStatus = (
         BootloaderFlashedStatus.NOT_FLASHED
     )
+    firmware_flashed: FirmwareFlashedStatus = FirmwareFlashedStatus.NOT_FLASHED
