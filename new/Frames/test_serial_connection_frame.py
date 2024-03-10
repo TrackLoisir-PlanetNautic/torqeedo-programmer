@@ -93,7 +93,6 @@ def get_default_connected_device(
 def click_test_serial_connection(
     torqeedo_programmer: TorqeedoProgrammer,
     serial_connection_status_label: Label,
-    secure_boot_status_label: Label,
     mac_address_label: Label,
     burn_hash_key_text: str,
 ):
@@ -119,10 +118,6 @@ def click_test_serial_connection(
         mac_address_label.config(text="MAC Address: " + esp_rom.mac_address)
 
         esp_rom.efuses = esp_rom.get_efuses()
-
-        secure_boot_status_label.config(
-            text="Secure boot ok : " + str(esp_rom.is_abs_done_fuse_ok())
-        )
 
         is_the_same_block2 = esp_rom.is_the_same_block2(
             torqeedo_programmer.selected_controller.hashkey_b64
@@ -172,6 +167,7 @@ def render_test_serial_connection_frame(
     middle_column_frame: Frame,
     torqeedo_programmer: TorqeedoProgrammer,
     burn_hash_key_text: str,
+    secure_boot_status_text: str,
 ):
 
     test_serial_connection_label = Label(
@@ -185,7 +181,6 @@ def render_test_serial_connection_frame(
         command=lambda: click_test_serial_connection(
             torqeedo_programmer,
             serial_connection_status_label,
-            secure_boot_status_label,
             mac_address_label,
             burn_hash_key_text,
         ),
@@ -198,7 +193,7 @@ def render_test_serial_connection_frame(
     serial_connection_status_label.pack(padx=10, pady=5)
 
     secure_boot_status_label = Label(
-        middle_column_frame, text="Secure boot status"
+        middle_column_frame, text=secure_boot_status_text
     )
     secure_boot_status_label.pack(padx=10, pady=5)
 
@@ -232,6 +227,11 @@ def render_test_serial_connection_frame(
                 mac_address_label.config(text="MAC Address")
                 torqeedo_programmer.selected_controller.esp = None
                 torqeedo_programmer.selected_controller.hashkey_b64 = None
+        if torqeedo_programmer.selected_controller.esp is not None:
+            secure_boot_status_text = "Secure boot ok : " + str(
+                torqeedo_programmer.selected_controller.esp.is_abs_done_fuse_ok()
+            )
+            secure_boot_status_label.config(text=secure_boot_status_text)
 
         middle_column_frame.after(
             100, check_controller_selected

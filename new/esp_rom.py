@@ -182,22 +182,22 @@ class EspRom(BaseModel):
             return 1
         return 0
 
-    def burn_sign_hask_key(
+    async def burn_sign_hask_key(
         self,
         hashkey_b64: bytes,
         update_burn_hash_key_progress_bar: callable,
         burn_hash_key_status_label: Label,
     ):
+        print("Start burning hash key")
         if not self.already_burned:
             try:
-                print("burn hash key")
                 update_burn_hash_key_progress_bar(0)
-                self.burn_efuse(
+                self._burn_efuse(
                     self.esp, self.efuses[0], "ABS_DONE_1", 1, None
                 )
                 update_burn_hash_key_progress_bar(50)
                 time.sleep(0.25)
-                self.burn_key(
+                self._burn_key(
                     self.esp,
                     self.efuses[0],
                     "secure_boot_v2",
@@ -205,13 +205,10 @@ class EspRom(BaseModel):
                     True,
                     None,
                 )
-                self.burnProgress.setValue(100)
+                update_burn_hash_key_progress_bar(100)
                 burn_hash_key_status_label.config(text="Burned !")
                 time.sleep(0.25)
                 self.efuses = self.get_efuses(self.esp)
-                self.absDoneStatus.setText(
-                    "secure boot ok: " + str(self.is_abs_done_fuse_ok())
-                )
                 if self.is_the_same_block2() != 1:
                     burn_hash_key_status_label.config(
                         text="Burn key failed !!"
@@ -219,9 +216,9 @@ class EspRom(BaseModel):
             except:
                 print("ERROR : can't burn now !")
         else:
-            print("compare keys")
+            print("Key already burned")
 
-    def burn_efuse(self, esp, efuses, efuse_name, value, args):
+    def _burn_efuse(self, esp, efuses, efuse_name, value, args):
         def print_attention(blocked_efuses_after_burn):
             if len(blocked_efuses_after_burn):
                 print(
@@ -342,7 +339,7 @@ class EspRom(BaseModel):
         else:
             print("Successful")
 
-    def burn_key(self, esp, efuses, blk, key: bytes, no_protect_key, args):
+    def _burn_key(self, esp, efuses, blk, key: bytes, no_protect_key, args):
         block_name = blk
         # efuses.force_write_always = False
 
