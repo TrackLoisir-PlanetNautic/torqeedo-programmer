@@ -10,6 +10,4 @@ class TorqeedoProgrammer(BaseModel):
     filtered_controllers: list[TorqeedoController] = []
     selected_controller: TorqeedoController = None
     selected_serial_port: str = None
-    # option are "no", "yes", "in_progress", "error"
-    firmware_download_status: str = "no"
     compilation_result: CompilationResult = None

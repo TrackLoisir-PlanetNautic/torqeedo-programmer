@@ -1,6 +1,7 @@
 import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
+from torqeedo_controller import BurnHashKeyStatus
 from tkinter import IntVar
 
 
@@ -24,7 +25,7 @@ def burn_hash_key_firmware_clicked(
 def render_burn_hash_key_frame(
     middle_column_frame: Frame,
     torqeedo_programmer: TorqeedoProgrammer,
-    burn_hash_key_status_label: Label,
+    burn_hash_key_text: str,
 ):
     progress_var = IntVar()
     progress_var.set(0)
@@ -57,34 +58,70 @@ def render_burn_hash_key_frame(
     )
     progress_bar.pack(padx=10, pady=5)
 
+    burn_hash_key_status_label = Label(
+        middle_column_frame,
+        text=burn_hash_key_text,
+    )
     burn_hash_key_status_label.pack(padx=10, pady=5)
 
-    def check_test_connexion_triggered():
-        if (
-            torqeedo_programmer.burn_hash_key_status_label
-            != burn_hash_key_status_label.cget("text")
-        ):
-            burn_hash_key_status_label.config(
-                text=torqeedo_programmer.burn_hash_key_status_label
-            )
-        # esp is defined in torqeedo_programmer.selected_controller
-        if (
-            torqeedo_programmer.selected_controller is not None
-            and torqeedo_programmer.selected_controller.esp is not None
-        ):
-            progress_var.set(0)
+    kingwo_id_of_hash_key: str = None
+
+    def check_burn_hash_key_status(kingwo_id_of_hash_key: str):
+        if torqeedo_programmer.selected_controller is None:
             burn_hash_key_button["state"] = "disabled"
-            burn_hash_key_status_label.config(text="No burn")
-        else:
+            burn_hash_key_status_label.config(text="Not connected")
+            progress_var.set(0)
+        elif (
+            torqeedo_programmer.selected_controller.burn_hash_key_status
+            == BurnHashKeyStatus.BURNED_SAME
+        ):
+            burn_hash_key_button["state"] = "disabled"
+            burn_hash_key_status_label.config(text="HashKey : Burned same")
+            progress_var.set(100)
+        elif (
+            torqeedo_programmer.selected_controller.burn_hash_key_status
+            == BurnHashKeyStatus.BURNED_NOT_SAME
+        ):
+            burn_hash_key_button["state"] = "disabled"
+            if kingwo_id_of_hash_key is None:
+                kingwo_id_of_hash_key = ""
+                asyncio.ensure_future(
+                    torqeedo_programmer.api.getKingwoIdFromHashkey(
+                        torqeedo_programmer.selected_controller.hashkey_b64,
+                        kingwo_id_of_hash_key,
+                    )
+                )
+            burn_hash_key_status_label.config(
+                text="HashKey : Burned not same" + kingwo_id_of_hash_key
+            )
+            progress_var.set(100)
+        elif (
+            torqeedo_programmer.selected_controller.burn_hash_key_status
+            == BurnHashKeyStatus.ERROR
+        ):
+            burn_hash_key_button["state"] = "disabled"
+            burn_hash_key_status_label.config(
+                text="HashKey : Error, try press download firmware"
+            )
+            progress_var.set(0)
+        elif (
+            torqeedo_programmer.selected_controller.burn_hash_key_status
+            == BurnHashKeyStatus.NOT_BURNED
+        ):
             burn_hash_key_button["state"] = "normal"
-            # if torqeedo_programmer.firmware_burn_hash_key_status == "no":
-            #    burn_hash_key_status_label.config(
-            #        text="Firmware non téléchargé"
-            #    )
-            #    progress_var.set(0)
-            #    current_step.set(0)
+            burn_hash_key_status_label.config(text="HashKey : Not burned")
+            progress_var.set(0)
+        elif (
+            torqeedo_programmer.selected_controller.burn_hash_key_status
+            == BurnHashKeyStatus.NOT_SCANNED
+        ):
+            burn_hash_key_button["state"] = "disabled"
+            kingwo_id_of_hash_key = None
+            burn_hash_key_status_label.config(text="HashKey : Not connected")
+            progress_var.set(0)
+
         middle_column_frame.after(
-            100, check_test_connexion_triggered
+            100, check_burn_hash_key_status, kingwo_id_of_hash_key
         )  # Check every 100ms
 
-    check_test_connexion_triggered()
+    check_burn_hash_key_status(kingwo_id_of_hash_key)

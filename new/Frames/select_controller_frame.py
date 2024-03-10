@@ -8,6 +8,7 @@ from tkinter.ttk import (
 from tkinter import IntVar, StringVar
 import asyncio
 from torqeedo_programmer import TorqeedoProgrammer
+from torqeedo_controller import DownloadFirmwareStatus
 
 
 async def get_torqeedo_controllers_async(
@@ -104,7 +105,6 @@ def render_select_controller_frame(
             for c in torqeedo_programmer.filtered_controllers
             if c.kingwoId == selected_kingwoId
         )
-        torqeedo_programmer.firmware_download_status = "no"
         print(torqeedo_programmer.selected_controller)
 
     kingwoId_combobox.bind("<KeyRelease>", on_combobox_input)

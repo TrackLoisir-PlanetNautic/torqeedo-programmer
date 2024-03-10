@@ -1,6 +1,7 @@
 import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
+from torqeedo_controller import TorqeedoController, DownloadFirmwareStatus
 from tkinter import IntVar, DoubleVar
 
 
@@ -11,7 +12,9 @@ def download_firmware_clicked(
     progress_var: DoubleVar,
     download_status_label: Label,
 ):
-    torqeedo_programmer.firmware_download_status = "in_progress"
+    torqeedo_programmer.selected_controller.firmware_download_status = (
+        DownloadFirmwareStatus.IN_PROGRESS
+    )
     print("download_firmware")
     progress_var.set(0)
     asyncio.ensure_future(
@@ -19,7 +22,6 @@ def download_firmware_clicked(
             torqeedo_programmer.selected_controller,
             update_dowload_firm_progress_bar,
             download_status_label,
-            torqeedo_programmer.firmware_download_status,
         )
     )
 
@@ -43,15 +45,11 @@ def render_download_firmware_frame(
             step_progress.set(0)
         current_chunck = step_progress.get()
         print(chunk_size * 100 / total_length)
-        step_progress.set(
-            (current_chunck + chunk_size * 100 / total_length)
-        )
+        step_progress.set((current_chunck + chunk_size * 100 / total_length))
         print(step_progress.get())
         print(current_step.get() * 25)
         print(step_progress.get() / 4)
-        progress_var.set(
-            current_step.get() * 25 + step_progress.get() / 4
-        )
+        progress_var.set(current_step.get() * 25 + step_progress.get() / 4)
         print(progress_var.get())
 
     download_firmware_label = Label(middle_column_frame, text="Download")
@@ -93,7 +91,11 @@ def render_download_firmware_frame(
             )
         else:
             download_button["state"] = "normal"
-            if torqeedo_programmer.firmware_download_status == "no":
+
+            if (
+                torqeedo_programmer.selected_controller.firmware_download_status
+                == DownloadFirmwareStatus.NOT_STARTED
+            ):
                 download_status_label.config(text="Firmware non téléchargé")
                 progress_var.set(0)
                 current_step.set(0)

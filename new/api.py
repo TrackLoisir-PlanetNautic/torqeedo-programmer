@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 import aiohttp
-from torqeedo_controller import TorqeedoController
+from torqeedo_controller import TorqeedoController, DownloadFirmwareStatus
 import base64
 from tkinter.ttk import Label
 
@@ -107,7 +107,6 @@ class API(BaseModel):
         torqeedo_controller: TorqeedoController,
         update_dowload_firm_progress_bar: callable,
         status_label: Label,
-        firmware_download_status: str,
     ):
         try:
             print("Downloading start firmware")
@@ -128,7 +127,9 @@ class API(BaseModel):
                         status_label.config(
                             text=f"Failed to download firmware: {data['message']}"
                         )
-                        firmware_download_status = "error"
+                        torqeedo_controller.firmware_download_status = (
+                            DownloadFirmwareStatus.ERROR
+                        )
                         return
                     torqeedo_controller.hashkey_b64 = base64.b64decode(
                         data["hashkey_b64"]
@@ -149,7 +150,9 @@ class API(BaseModel):
                 if not st_bootloader:
                     print("Failed to download bootloader")
                     status_label.config(text="Failed to download bootloader")
-                    firmware_download_status = "error"
+                    torqeedo_controller.firmware_download_status = (
+                        DownloadFirmwareStatus.ERROR
+                    )
                     return
 
                 print("Downloading st_parttable")
@@ -163,7 +166,9 @@ class API(BaseModel):
                 if not st_parttable:
                     print("Failed to download part table")
                     status_label.config(text="Failed to download part table")
-                    firmware_download_status = "error"
+                    torqeedo_controller.firmware_download_status = (
+                        DownloadFirmwareStatus.ERROR
+                    )
                     return
 
                 print("Downloading st_signedfirmware")
@@ -180,17 +185,21 @@ class API(BaseModel):
                     status_label.config(
                         text="Failed to download signed firmware"
                     )
-                    firmware_download_status = "error"
+                    torqeedo_controller.firmware_download_status = (
+                        DownloadFirmwareStatus.ERROR
+                    )
                     return
             print("Download completed successfully")
             status_label.config(text="Download completed successfully")
-            firmware_download_status = "yes"
+            torqeedo_controller.firmware_download_status = (
+                DownloadFirmwareStatus.SUCCESS
+            )
         except Exception as e:
             print(e)
             return
 
     async def getKingwoIdFromHashkey(
-        self, hashkey_b64: bytes, burn_hash_key_status_label: Label
+        self, hashkey_b64: bytes, kingwo_id_of_hash_key: str
     ):
         url = (
             self.base_url + "/backend/pythonProgrammer/getKingwoIdFromHashkey"
@@ -205,15 +214,9 @@ class API(BaseModel):
                     res.raise_for_status()
                     data = await res.json()
                     if data["status"] == 200:
-                        burn_hash_key_status_label.config(
-                            text=f"Hash key : Already Burned (not the same) KingwoId: {data['kingwoId']}"
-                        )
+                        kingwo_id_of_hash_key = f"KingwoId: {data['kingwoId']}"
                     else:
-                        burn_hash_key_status_label.config(
-                            text=f"Hash key : Already Burned (not the same) Failed to get KingwoId: {data.get('message', 'No error message')}"
-                        )
+                        kingwo_id_of_hash_key = f"Failed to get KingwoId: {data.get('message', 'No error message')}"
         except Exception as e:
             print(e)
-            burn_hash_key_status_label.config(
-                text=f"Hash key : Already Burned (not the same) Failed to get KingwoId: {e}"
-            )
+            kingwo_id_of_hash_key = f"Failed to get KingwoId: {e}"
