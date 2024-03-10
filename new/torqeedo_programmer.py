@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from torqeedo_controller import TorqeedoController
 from api import API
-from compilation_result import CompilationResult
 
 
 class TorqeedoProgrammer(BaseModel):

@@ -8,6 +8,7 @@ from status import (
     BootloaderFlashedStatus,
     FirmwareFlashedStatus,
 )
+from compilation_result import CompilationResult
 
 
 class TorqeedoController(BaseModel):
@@ -34,3 +35,4 @@ class TorqeedoController(BaseModel):
     firmware_flashed_status: FirmwareFlashedStatus = (
         FirmwareFlashedStatus.NOT_FLASHED
     )
+    compilation_result: CompilationResult = None

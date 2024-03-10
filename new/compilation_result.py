@@ -3,19 +3,19 @@ from typing import Optional, List
 
 
 class CompilationResult(BaseModel):
-    secureBootV2EnabledBootloader: Optional[str] = None
-    secureBootV2CheckOKBootloader: Optional[str] = None
-    secureBootV2EnabledBootloaderStage2: Optional[str] = None
-    secureBootV2CheckOKFirmware: Optional[str] = None
-    projectName: Optional[str] = None
-    AES128_KEY: Optional[str] = None
     VERSION_NUMBER: Optional[str] = None
-    TRACKER_GPS_ID: Optional[str] = None
-    WIFI_BACKUP_SSID: Optional[str] = None
-    MODE: Optional[str] = None
-    REAL_COMPILATION_TIME: Optional[str] = None
+    AES128_KEY: Optional[str] = None
     DEBUG: Optional[List[str]] = None
-    partTableDesc: Optional[bool] = None
-    error: Optional[str] = None
-
-    # Ajoutez d'autres champs ici au besoin
+    REAL_COMPILATION_TIME: Optional[str] = None
+    WIFI_BACKUP_SSID: Optional[str] = None
+    TRACKER_GPS_ID: Optional[str] = None
+    MODE: Optional[str] = None
+    SECURE_BOOT_V2_ENABLED_BOOTLOADER: Optional[bool] = None
+    SECURE_BOOT_V2_VERIFIED: Optional[bool] = None
+    COMPILATION_TIME: Optional[str] = None
+    PROJECT_NAME: Optional[str] = None
+    APP_VERSION: Optional[str] = None
+    SECURE_BOOT_V2_ENABLED_BOOTLOADER_STAGE2: Optional[bool] = None
+    SECURE_BOOT_V2_CHECK_OK_BOOTLOADER: Optional[bool] = None
+    PART_TABLE: Optional[bool] = None
+    ERROR: Optional[str] = None
