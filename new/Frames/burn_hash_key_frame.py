@@ -104,7 +104,7 @@ def render_burn_hash_key_frame(
         ):
             burn_hash_key_button["state"] = "disabled"
             burn_hash_key_status_label.config(
-                text="HashKey : Error, try press download firmware"
+                text="HashKey : Erreur, veuillez télécharger le firmware et réessayer"
             )
             progress_var.set(0)
         elif (
