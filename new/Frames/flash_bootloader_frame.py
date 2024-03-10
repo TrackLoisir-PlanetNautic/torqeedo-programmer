@@ -1,8 +1,12 @@
 import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
-from tkinter import IntVar
-from torqeedo_controller import BootloaderFlashedStatus
+from tkinter import IntVar, messagebox
+from torqeedo_controller import (
+    BootloaderFlashedStatus,
+    FirmwareFlashedStatus,
+    BurnHashKeyStatus,
+)
 import threading
 import queue
 
@@ -52,7 +56,25 @@ async def flash_bootload(
     # Ensuring the ESP tool runs in a non-blocking way
     def run_write_flash(progress_queue):
         def update_progress(value):
-            progress_queue.put(value)
+            if value == -1:
+                torqeedo_programmer.selected_controller.esp_rom = None
+                torqeedo_programmer.selected_controller.burn_hash_key_status = (
+                    BurnHashKeyStatus.NOT_SCANNED
+                )
+                torqeedo_programmer.selected_controller.bootloader_flashed_status = (
+                    BootloaderFlashedStatus.NOT_FLASHED
+                )
+                torqeedo_programmer.selected_controller.firmware_flashed_status = (
+                    FirmwareFlashedStatus.NOT_FLASHED
+                )
+                torqeedo_programmer.selected_controller.esp_rom = None
+                torqeedo_programmer.selected_controller.compilation_result = (
+                    None
+                )
+                progress_queue.put(("error", "Firmware flashing failed."))
+                progress_queue.put(("progress", 0))
+            else:
+                progress_queue.put(("progress", value))
 
         torqeedo_programmer.selected_controller.esp_rom.write_flash(
             args, update_progress
@@ -121,8 +143,14 @@ def render_flash_bootloader_frame(
 
     def check_flash_bootloader_status():
         try:
-            progress_value = progress_queue.get_nowait()
-            progress_var.set(progress_value)
+            message, value = progress_queue.get_nowait()
+            if message == "error":
+                messagebox.showerror(
+                    "Erreur",
+                    "Erreur lors du flashage du bootloader, la carte a été déconnectée. Veuillez la reconnecter et réessayer.",
+                )
+            elif message == "progress":
+                progress_var.set(value)
         except queue.Empty:
             pass  # Do nothing if the queue is empty
         if torqeedo_programmer.selected_controller is None:
