@@ -83,7 +83,6 @@ def render_download_firmware_frame(
             )
         else:
             download_button["state"] = "normal"
-
             if (
                 torqeedo_programmer.selected_controller.firmware_download_status
                 == DownloadFirmwareStatus.NOT_STARTED

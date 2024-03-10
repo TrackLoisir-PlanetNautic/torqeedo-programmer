@@ -2,6 +2,7 @@ import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
 from tkinter import IntVar
+from torqeedo_controller import BootloaderFlashedStatus
 
 
 class Dict2Class(object):
@@ -16,15 +17,12 @@ def flash_bootloader_clicked(
     torqeedo_programmer: TorqeedoProgrammer,
     update_flash_bootloader_form_progress_bar: callable,
     progress_var: IntVar,
-    flash_bootloader_status_label: Label,
 ):
-
-    flash_bootloader_status_label.config(
-        text="Flashing bootloader and part table"
+    progress_var.set(0)
+    torqeedo_programmer.selected_controller.bootloader_flashed = (
+        BootloaderFlashedStatus.IN_PROGRESS
     )
     print("flash_bootloader_clicked")
-    progress_var.set(0)
-    print("part table and bootloader flash")
 
     part_table = open("./downloads/part_table_tmp", "rb")
     bootloader = open("./downloads/bootloader_tmp", "rb")
@@ -58,7 +56,9 @@ def flash_bootloader_clicked(
         args, update_flash_bootloader_form_progress_bar
     )
 
-    flash_bootloader_status_label.config(text="Flashed")
+    torqeedo_programmer.selected_controller.bootloader_flashed = (
+        BootloaderFlashedStatus.FLASHED
+    )
 
 
 def render_flash_bootloader_frame(
@@ -83,7 +83,6 @@ def render_flash_bootloader_frame(
             torqeedo_programmer,
             update_flash_bootloader_form_progress_bar,
             progress_var,
-            flash_bootloader_status_label,
         ),
     )
     flash_bootloader_button.pack(padx=10, pady=10)
@@ -102,6 +101,39 @@ def render_flash_bootloader_frame(
     flash_bootloader_status_label.pack(padx=10, pady=5)
 
     def check_flash_bootloader_status():
+        if torqeedo_programmer.selected_controller is None:
+            progress_var.set(0)
+            flash_bootloader_button["state"] = "disabled"
+            flash_bootloader_status_label.config(
+                text="Veuillez sélectionner un identifiant de contrôleur"
+            )
+        elif torqeedo_programmer.selected_controller.esp_rom is None:
+            progress_var.set(0)
+            flash_bootloader_button["state"] = "disabled"
+            flash_bootloader_status_label.config(
+                text="Non connecté à la carte electronique"
+            )
+        elif (
+            torqeedo_programmer.selected_controller.bootloader_flashed
+            == BootloaderFlashedStatus.NOT_FLASHED
+        ):
+            progress_var.set(0)
+            flash_bootloader_button["state"] = "normal"
+            flash_bootloader_status_label.config(text="Not flashed")
+        elif (
+            torqeedo_programmer.selected_controller.bootloader_flashed
+            == BootloaderFlashedStatus.IN_PROGRESS
+        ):
+            flash_bootloader_button["state"] = "disabled"
+            flash_bootloader_status_label.config(text="In progress")
+        elif (
+            torqeedo_programmer.selected_controller.bootloader_flashed
+            == BootloaderFlashedStatus.FLASHED
+        ):
+            flash_bootloader_button["state"] = "disabled"
+            flash_bootloader_status_label.config(
+                text="Bootloader and part table flashed"
+            )
 
         middle_column_frame.after(
             100, check_flash_bootloader_status

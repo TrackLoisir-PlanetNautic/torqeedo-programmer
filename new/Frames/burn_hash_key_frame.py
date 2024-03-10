@@ -69,7 +69,9 @@ def render_burn_hash_key_frame(
     def check_burn_hash_key_status(kingwo_id_of_hash_key: str):
         if torqeedo_programmer.selected_controller is None:
             burn_hash_key_button["state"] = "disabled"
-            burn_hash_key_status_label.config(text="Not connected")
+            burn_hash_key_status_label.config(
+                text="Veuillez lancer la connection à une carte électronique"
+            )
             progress_var.set(0)
         elif (
             torqeedo_programmer.selected_controller.burn_hash_key_status
@@ -117,7 +119,9 @@ def render_burn_hash_key_frame(
         ):
             burn_hash_key_button["state"] = "disabled"
             kingwo_id_of_hash_key = None
-            burn_hash_key_status_label.config(text="HashKey : Not connected")
+            burn_hash_key_status_label.config(
+                text="HashKey : Veuillez lancer la connection à une carte électronique"
+            )
             progress_var.set(0)
 
         middle_column_frame.after(

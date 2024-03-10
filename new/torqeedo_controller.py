@@ -20,6 +20,12 @@ class BurnHashKeyStatus(Enum):
     ERROR = "error"
 
 
+class BootloaderFlashedStatus(Enum):
+    NOT_FLASHED = "not_flashed"
+    IN_PROGRESS = "in_progress"
+    FLASHED = "flashed"
+
+
 class TorqeedoController(BaseModel):
     torqCtrlId: int
     lastPing: int
@@ -38,3 +44,6 @@ class TorqeedoController(BaseModel):
         DownloadFirmwareStatus.NOT_STARTED
     )
     burn_hash_key_status: BurnHashKeyStatus = BurnHashKeyStatus.NOT_SCANNED
+    bootloader_flashed: BootloaderFlashedStatus = (
+        BootloaderFlashedStatus.NOT_FLASHED
+    )

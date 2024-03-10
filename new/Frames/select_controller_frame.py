@@ -8,7 +8,11 @@ from tkinter.ttk import (
 from tkinter import IntVar, StringVar
 import asyncio
 from torqeedo_programmer import TorqeedoProgrammer
-from torqeedo_controller import DownloadFirmwareStatus
+from torqeedo_controller import (
+    DownloadFirmwareStatus,
+    BootloaderFlashedStatus,
+    BurnHashKeyStatus,
+)
 
 
 async def get_torqeedo_controllers_async(
@@ -106,6 +110,18 @@ def render_select_controller_frame(
             for c in torqeedo_programmer.filtered_controllers
             if c.kingwoId == selected_kingwoId
         )
+        torqeedo_programmer.selected_controller.download_firmware_status = (
+            DownloadFirmwareStatus.NOT_DOWNLOADED
+        )
+        torqeedo_programmer.selected_controller.burn_hash_key_status = (
+            BurnHashKeyStatus.NOT_SCANNED
+        )
+        torqeedo_programmer.selected_controller.bootloader_flashed = (
+            BootloaderFlashedStatus.NOT_FLASHED
+        )
+        torqeedo_programmer.selected_controller.esp_rom = None
+        torqeedo_programmer.selected_controller.hashkey_b64 = None
+
         print(torqeedo_programmer.selected_controller)
 
     kingwoId_combobox.bind("<KeyRelease>", on_combobox_input)
