@@ -82,6 +82,7 @@ def render_select_controller_frame(
 
     filter_kingwoId = StringVar()
     filter_last_ping = IntVar()
+    filter_last_ping.set(1)
 
     # Création de la Combobox pour sélectionner kingwoId
     kingwoId_combobox = Combobox(

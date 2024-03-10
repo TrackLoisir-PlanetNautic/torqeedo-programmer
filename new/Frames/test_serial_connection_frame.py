@@ -109,7 +109,7 @@ def click_test_serial_connection(
     )
     if connected_esp is not None:
         esp_rom = EspRom(esp=connected_esp)
-        torqeedo_programmer.selected_controller.esp = esp_rom
+        torqeedo_programmer.selected_controller.esp_rom = esp_rom
 
         esp_rom.mac_address = str(connected_esp.read_mac())
         esp_rom.description = connected_esp.get_chip_description()
@@ -156,7 +156,7 @@ def click_test_serial_connection(
         serial_connection_status_label.config(
             text="Erreur de connexion, vérifiez le branchement"
         )
-        torqeedo_programmer.selected_controller.esp = None
+        torqeedo_programmer.selected_controller.esp_rom = None
         torqeedo_programmer.selected_controller.hashkey_b64 = None
         torqeedo_programmer.selected_controller.burn_hash_key_status = (
             BurnHashKeyStatus.NOT_SCANNED
@@ -224,11 +224,14 @@ def render_test_serial_connection_frame(
                 serial_connection_status_label.config(text="Not connected")
                 secure_boot_status_label.config(text="Secure boot status")
                 mac_address_label.config(text="MAC Address")
-                torqeedo_programmer.selected_controller.esp = None
+                torqeedo_programmer.selected_controller.esp_rom = None
                 torqeedo_programmer.selected_controller.hashkey_b64 = None
-        if torqeedo_programmer.selected_controller is not None and torqeedo_programmer.selected_controller.esp is not None:
+        if (
+            torqeedo_programmer.selected_controller is not None
+            and torqeedo_programmer.selected_controller.esp_rom is not None
+        ):
             secure_boot_status_text = "Secure boot ok : " + str(
-                torqeedo_programmer.selected_controller.esp.is_abs_done_fuse_ok()
+                torqeedo_programmer.selected_controller.esp_rom.is_abs_done_fuse_ok()
             )
             secure_boot_status_label.config(text=secure_boot_status_text)
 

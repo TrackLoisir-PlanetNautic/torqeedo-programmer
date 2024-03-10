@@ -16,7 +16,12 @@ def flash_bootloader_clicked(
     torqeedo_programmer: TorqeedoProgrammer,
     update_flash_bootloader_form_progress_bar: callable,
     progress_var: IntVar,
+    flash_bootloader_status_label: Label,
 ):
+
+    flash_bootloader_status_label.config(
+        text="Flashing bootloader and part table"
+    )
     print("flash_bootloader_clicked")
     progress_var.set(0)
     print("part table and bootloader flash")
@@ -44,13 +49,16 @@ def flash_bootloader_clicked(
     }
     args = Dict2Class(args)
     print(args)
-
-    if not torqeedo_programmer.selected_controller.esp.IS_STUB:
-        torqeedo_programmer.selected_controller.esp = (
-            torqeedo_programmer.selected_controller.esp.run_stub()
+    print(torqeedo_programmer.selected_controller.esp_rom)
+    if not torqeedo_programmer.selected_controller.esp_rom.esp.IS_STUB:
+        torqeedo_programmer.selected_controller.esp_rom.esp = (
+            torqeedo_programmer.selected_controller.esp_rom.esp.run_stub()
         )
-    torqeedo_programmer.selected_controller.write_flash(self.esp, args, self.bootloaderPartTableFlashProgress)
+    torqeedo_programmer.selected_controller.esp_rom.write_flash(
+        args, update_flash_bootloader_form_progress_bar
+    )
 
+    flash_bootloader_status_label.config(text="Flashed")
 
 
 def render_flash_bootloader_frame(

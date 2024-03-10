@@ -72,7 +72,6 @@ class API(BaseModel):
         step: int,
     ):
         url = self.base_url + endpoint
-        print(url)
         headers = {
             "authorization": "Bearer " + self.accessToken,
             "torqctrlid": str(torqeedo_controller.torqCtrlId),
@@ -91,7 +90,6 @@ class API(BaseModel):
                     total_length = int(total_length)
 
                 chunk_size = 1024
-                print(total_length)
                 with open(store_path, "wb") as f:
                     async for chunk in res.content.iter_chunked(chunk_size):
                         if chunk:

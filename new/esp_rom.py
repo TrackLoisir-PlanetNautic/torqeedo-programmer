@@ -43,7 +43,6 @@ from esptool.util import (
     div_roundup,
     pad_to,
     print_overwrite,
-    timeout_per_mb,
 )
 
 from esptool.cmds import erase_flash, verify_flash
@@ -53,6 +52,7 @@ from esptool.bin_image import LoadFirmwareImage
 from esptool.loader import (
     DEFAULT_TIMEOUT,
     ERASE_WRITE_TIMEOUT_PER_MB,
+    timeout_per_mb,
     ESPLoader,
 )
 
@@ -505,7 +505,9 @@ class EspRom(BaseModel):
             image = image[0:2] + flash_params + image[4:]
         return image
 
-    def write_flash(self, args, progressBar):
+    def write_flash(
+        self, args, update_flash_bootloader_form_progress_bar: callable
+    ):
         # set args.compress based on default behaviour:
         # -> if either --compress or --no-compress is set, honour that
         # -> otherwise, set --compress unless --no-stub is set
@@ -760,7 +762,10 @@ class EspRom(BaseModel):
             timeout = DEFAULT_TIMEOUT
 
             while len(image) > 0:
-                progressBar.setValue(100 * (seq + 1) // blocks)
+                update_flash_bootloader_form_progress_bar(
+                    100 * (seq + 1) // blocks
+                )
+                # progressBar.setValue(100 * (seq + 1) // blocks)
                 print(100 * (seq + 1) // blocks)
                 print_overwrite(
                     "Writing at 0x%08x... (%d %%)"

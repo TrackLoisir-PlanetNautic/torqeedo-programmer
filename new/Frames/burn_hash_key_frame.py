@@ -14,7 +14,7 @@ def burn_hash_key_firmware_clicked(
     print("burn_hash_key")
     progress_var.set(0)
     asyncio.ensure_future(
-        torqeedo_programmer.selected_controller.esp.burn_sign_hask_key(
+        torqeedo_programmer.selected_controller.esp_rom.burn_sign_hask_key(
             progress_var,
             update_burn_hash_key_progress_bar,
             burn_hash_key_status_label,

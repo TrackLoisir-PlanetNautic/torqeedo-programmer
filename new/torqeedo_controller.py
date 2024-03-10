@@ -33,7 +33,7 @@ class TorqeedoController(BaseModel):
     lastUpdateOTA: int
     statusId: int
     hashkey_b64: bytes = None
-    esp: EspRom = None
+    esp_rom: EspRom = None
     firmware_download_status: DownloadFirmwareStatus = (
         DownloadFirmwareStatus.NOT_STARTED
     )
