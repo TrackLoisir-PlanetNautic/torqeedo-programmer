@@ -233,7 +233,7 @@ class EspRom(BaseModel):
                     burn_hash_key_status_label.config(
                         text="Burn key failed !!"
                     )
-            except:
+            except Exception:
                 print("ERROR : can't burn now !")
         else:
             print("Key already burned")
