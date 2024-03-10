@@ -122,8 +122,6 @@ def render_select_controller_frame(
         torqeedo_programmer.selected_controller.esp_rom = None
         torqeedo_programmer.selected_controller.hashkey_b64 = None
 
-        print(torqeedo_programmer.selected_controller)
-
     kingwoId_combobox.bind("<KeyRelease>", on_combobox_input)
     kingwoId_combobox.bind(
         "<<ComboboxSelected>>", on_combobox_select

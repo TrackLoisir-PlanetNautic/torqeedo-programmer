@@ -1,7 +1,7 @@
 import asyncio
 from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
-from torqeedo_controller import TorqeedoController, DownloadFirmwareStatus
+from torqeedo_controller import DownloadFirmwareStatus
 from tkinter import IntVar, DoubleVar
 
 

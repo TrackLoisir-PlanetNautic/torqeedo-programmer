@@ -13,15 +13,10 @@ class Dict2Class(object):
             setattr(self, key, my_dict[key])
 
 
-def flash_bootloader_clicked(
+async def flash_bootload(
     torqeedo_programmer: TorqeedoProgrammer,
     update_flash_bootloader_form_progress_bar: callable,
-    progress_var: IntVar,
 ):
-    progress_var.set(0)
-    torqeedo_programmer.selected_controller.bootloader_flashed = (
-        BootloaderFlashedStatus.IN_PROGRESS
-    )
     print("flash_bootloader_clicked")
 
     part_table = open("./downloads/part_table_tmp", "rb")
@@ -53,14 +48,29 @@ def flash_bootloader_clicked(
             torqeedo_programmer.selected_controller.esp_rom.esp.run_stub()
         )
 
-    asyncio.ensure_future(
-        torqeedo_programmer.selected_controller.esp_rom.write_flash(
-            args, update_flash_bootloader_form_progress_bar
-        )
+    torqeedo_programmer.selected_controller.esp_rom.write_flash(
+        args, update_flash_bootloader_form_progress_bar
     )
 
     torqeedo_programmer.selected_controller.bootloader_flashed = (
         BootloaderFlashedStatus.FLASHED
+    )
+
+
+def flash_bootloader_clicked(
+    torqeedo_programmer: TorqeedoProgrammer,
+    update_flash_bootloader_form_progress_bar: callable,
+    progress_var: IntVar,
+):
+    progress_var.set(0)
+    torqeedo_programmer.selected_controller.bootloader_flashed = (
+        BootloaderFlashedStatus.IN_PROGRESS
+    )
+    asyncio.ensure_future(
+        flash_bootload(
+            torqeedo_programmer,
+            update_flash_bootloader_form_progress_bar,
+        )
     )
 
 
