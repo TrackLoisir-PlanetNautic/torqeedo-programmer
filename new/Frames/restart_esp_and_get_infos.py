@@ -10,7 +10,7 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
     print("restart_esp_and_readline")
     try:
         torqeedo_programmer.selected_controller.esp_rom.restart()
-        compilation_result: CompilationResult = None
+        compilation_result: CompilationResult = CompilationResult()
         inPartTableDesc = False
 
         with serial.Serial(
@@ -99,6 +99,7 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                     print(
                         "Can't read serial port (maybe already open by another software ?)"
                     )
+        print(compilation_result)
     except Exception as e:
         print(e)
         return
