@@ -194,7 +194,12 @@ class API(BaseModel):
             )
         except Exception as e:
             print(e)
-            return
+            torqeedo_controller.firmware_download_status = (
+                DownloadFirmwareStatus.ERROR
+            )
+            status_label.config(
+                text="Impossible de télécharger. Vérifiez votre connexion internet."
+            )
 
     async def getKingwoIdFromHashkey(
         self, hashkey_b64: bytes, kingwo_id_of_hash_key: str
