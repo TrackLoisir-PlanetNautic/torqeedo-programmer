@@ -52,8 +52,11 @@ def flash_bootloader_clicked(
         torqeedo_programmer.selected_controller.esp_rom.esp = (
             torqeedo_programmer.selected_controller.esp_rom.esp.run_stub()
         )
-    torqeedo_programmer.selected_controller.esp_rom.write_flash(
-        args, update_flash_bootloader_form_progress_bar
+
+    asyncio.ensure_future(
+        torqeedo_programmer.selected_controller.esp_rom.write_flash(
+            args, update_flash_bootloader_form_progress_bar
+        )
     )
 
     torqeedo_programmer.selected_controller.bootloader_flashed = (
@@ -69,6 +72,9 @@ def render_flash_bootloader_frame(
     progress_var.set(0)
 
     def update_flash_bootloader_form_progress_bar(value):
+        print("===========")
+        print(value)
+        print("===========")
         progress_var.set(value)
 
     flash_bootloader_label = Label(

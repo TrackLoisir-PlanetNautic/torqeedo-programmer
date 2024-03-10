@@ -505,7 +505,7 @@ class EspRom(BaseModel):
             image = image[0:2] + flash_params + image[4:]
         return image
 
-    def write_flash(
+    async def write_flash(
         self, args, update_flash_bootloader_form_progress_bar: callable
     ):
         # set args.compress based on default behaviour:

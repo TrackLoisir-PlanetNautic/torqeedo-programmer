@@ -111,7 +111,7 @@ def render_select_controller_frame(
             if c.kingwoId == selected_kingwoId
         )
         torqeedo_programmer.selected_controller.download_firmware_status = (
-            DownloadFirmwareStatus.NOT_DOWNLOADED
+            DownloadFirmwareStatus.NOT_STARTED
         )
         torqeedo_programmer.selected_controller.burn_hash_key_status = (
             BurnHashKeyStatus.NOT_SCANNED
