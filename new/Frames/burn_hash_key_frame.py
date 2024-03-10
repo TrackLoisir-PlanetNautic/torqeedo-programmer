@@ -22,7 +22,9 @@ def burn_hash_key_firmware_clicked(
 
 
 def render_burn_hash_key_frame(
-    middle_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
+    middle_column_frame: Frame,
+    torqeedo_programmer: TorqeedoProgrammer,
+    burn_hash_key_status_label: Label,
 ):
     progress_var = IntVar()
     progress_var.set(0)
@@ -55,10 +57,6 @@ def render_burn_hash_key_frame(
     )
     progress_bar.pack(padx=10, pady=5)
 
-    burn_hash_key_status_label = Label(
-        middle_column_frame,
-        text=torqeedo_programmer.burn_hash_key_status_label,
-    )
     burn_hash_key_status_label.pack(padx=10, pady=5)
 
     def check_test_connexion_triggered():

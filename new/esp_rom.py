@@ -110,6 +110,9 @@ class EspRom(BaseModel):
         """
         (manufacturer, device, flash_size, flash_type)
         """
+        print(
+            "Getting esp flash infos : manufacturer, device, flash_size, flash_type"
+        )
         val = {}
         try:
             flash_id = self.esp.flash_id()
@@ -124,6 +127,7 @@ class EspRom(BaseModel):
             print(err)
 
     def is_abs_done_fuse_ok(self):
+        print("Checking abs done fuse")
         for efu in self.efuses[0].efuses:
             if efu.name == "ABS_DONE_1":
                 print(efu.name)
@@ -137,6 +141,7 @@ class EspRom(BaseModel):
         debug_mode=False,
         do_not_confirm=False,
     ) -> tuple:
+        print("Getting efuses")
         for name in SUPPORTED_CHIPS:
             print(self.esp.CHIP_NAME)
             if SUPPORTED_CHIPS[name].chip_name == self.esp.CHIP_NAME:
@@ -153,25 +158,25 @@ class EspRom(BaseModel):
             )
 
     def is_the_same_block2(self, hashkey_b64: bytes):
-        if hashkey_b64 is None or self.efuse is None:
+        if hashkey_b64 is None or self.efuses is None:
             return -2
-
+        print("Comparing hash key")
         print("------")
-        print(str(self.efuse[0].blocks[2].bitarray)[2:])
+        print(str(self.efuses[0].blocks[2].bitarray)[2:])
         returnedNewBitString = ""
-        for i in range(0, int(len(hexify(self.signHashKey))), 2):
-            returnedNewBitString += str(hexify(self.signHashKey))[i + 1]
-            returnedNewBitString += str(hexify(self.signHashKey))[i]
+        for i in range(0, int(len(hexify(hashkey_b64))), 2):
+            returnedNewBitString += str(hexify(hashkey_b64))[i + 1]
+            returnedNewBitString += str(hexify(hashkey_b64))[i]
         print(returnedNewBitString[::-1])
         print("------")
 
         if (
-            str(str(self.efuse[0].blocks[2].bitarray)[2:])
+            str(str(self.efuses[0].blocks[2].bitarray)[2:])
             == "0000000000000000000000000000000000000000000000000000000000000000"
         ):
             return -1
 
-        if str(str(self.efuse[0].blocks[2].bitarray)[2:]) == str(
+        if str(str(self.efuses[0].blocks[2].bitarray)[2:]) == str(
             returnedNewBitString[::-1]
         ):
             return 1
@@ -187,7 +192,9 @@ class EspRom(BaseModel):
             try:
                 print("burn hash key")
                 update_burn_hash_key_progress_bar(0)
-                self.burn_efuse(self.esp, self.efuse[0], "ABS_DONE_1", 1, None)
+                self.burn_efuse(
+                    self.esp, self.efuses[0], "ABS_DONE_1", 1, None
+                )
                 update_burn_hash_key_progress_bar(50)
                 time.sleep(0.25)
                 self.burn_key(
@@ -201,7 +208,7 @@ class EspRom(BaseModel):
                 self.burnProgress.setValue(100)
                 burn_hash_key_status_label.config(text="Burned !")
                 time.sleep(0.25)
-                self.efuse = self.get_efuses(self.esp)
+                self.efuses = self.get_efuses(self.esp)
                 self.absDoneStatus.setText(
                     "secure boot ok: " + str(self.is_abs_done_fuse_ok())
                 )

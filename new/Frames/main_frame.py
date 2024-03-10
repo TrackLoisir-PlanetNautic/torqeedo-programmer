@@ -1,4 +1,4 @@
-from tkinter.ttk import Frame
+from tkinter.ttk import Frame, Label
 from tkinter import Toplevel
 from torqeedo_programmer import TorqeedoProgrammer
 from Frames.select_controller_frame import render_select_controller_frame
@@ -27,8 +27,11 @@ def open_main_frame(
     middle_column_frame.pack(side="left", expand=True, fill="both")
 
     render_download_firmware_frame(middle_column_frame, torqeedo_programmer)
+    burn_hash_key_status_label = Label(middle_column_frame, text="Not burned")
     render_test_serial_connection_frame(
-        middle_column_frame, torqeedo_programmer
+        middle_column_frame, torqeedo_programmer, burn_hash_key_status_label
     )
 
-    render_burn_hash_key_frame(middle_column_frame, torqeedo_programmer)
+    render_burn_hash_key_frame(
+        middle_column_frame, torqeedo_programmer, burn_hash_key_status_label
+    )

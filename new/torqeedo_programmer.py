@@ -13,4 +13,3 @@ class TorqeedoProgrammer(BaseModel):
     # option are "no", "yes", "in_progress", "error"
     firmware_download_status: str = "no"
     compilation_result: CompilationResult = None
-    burn_hash_key_status_label: str = "not connected"

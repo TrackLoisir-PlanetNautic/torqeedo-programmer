@@ -188,3 +188,24 @@ class API(BaseModel):
         except Exception as e:
             print(e)
             return
+
+    async def getKingwoIdFromHashkey(
+        self, hashkey_b64: bytes, burn_hash_key_status_label: Label
+    ):
+        url = (
+            self.base_url + "/backend/pythonProgrammer/getKingwoIdFromHashkey"
+        )
+        headers = {"Authorization": "Bearer " + self.accessToken}
+        data = {"hashkey_b64": base64.b64encode(hashkey_b64).decode("utf-8")}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=data) as res:
+                res.raise_for_status()
+                data = await res.json()
+                if data["status"] == 200:
+                    burn_hash_key_status_label.config(
+                        text=f"Already Burned (not the same) KingwoId: {data['kingwoId']}"
+                    )
+                else:
+                    burn_hash_key_status_label.config(
+                        text=f"Already Burned (not the same) Failed to get KingwoId: {data.get('message', 'No error message')}"
+                    )

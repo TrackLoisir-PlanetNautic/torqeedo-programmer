@@ -1,3 +1,4 @@
+import asyncio
 from tkinter.ttk import Label, Button, Frame
 from torqeedo_programmer import TorqeedoProgrammer
 from esp_rom import EspRom
@@ -93,8 +94,9 @@ def click_test_serial_connection(
     serial_connection_status_label: Label,
     secure_boot_status_label: Label,
     mac_address_label: Label,
+    burn_hash_key_status_label: Label,
 ):
-    print("test serial")
+    print("Test serial connection")
 
     connected_esp = get_default_connected_device(
         [torqeedo_programmer.selected_serial_port],
@@ -106,51 +108,53 @@ def click_test_serial_connection(
         serial_connection_status_label=serial_connection_status_label,
     )
     if connected_esp is not None:
-        print(connected_esp)
         esp_rom = EspRom(esp=connected_esp)
         torqeedo_programmer.selected_controller.esp = esp_rom
 
-        esp_rom.mac_address = str(esp_rom.esp.read_mac())
-        esp_rom.description = esp_rom.esp.get_chip_description()
+        esp_rom.mac_address = str(connected_esp.read_mac())
+        esp_rom.description = connected_esp.get_chip_description()
         esp_rom.flash_infos = esp_rom.get_flash_id()
         esp_rom.major_rev = connected_esp.get_major_chip_version()
-        mac_address_label.config(text="MAC Address: " + esp_rom.mac)
+        mac_address_label.config(text="MAC Address: " + esp_rom.mac_address)
+
         esp_rom.efuses = esp_rom.get_efuses()
+
         secure_boot_status_label.config(
             text="Secure boot ok : " + str(esp_rom.is_abs_done_fuse_ok())
         )
-        print(esp_rom.efuses)
+
         is_the_same_block2 = esp_rom.is_the_same_block2(
             torqeedo_programmer.selected_controller.hashkey_b64
         )
+
         if is_the_same_block2 == 1:
-            torqeedo_programmer.burn_hash_key_status_label = (
-                "Already Burned (same)"
-            )
+            burn_hash_key_status_label = "Already Burned (same)"
             esp_rom.already_burned = True
             esp_rom.is_same_hash_key = True
         elif is_the_same_block2 == 0:
-            torqeedo_programmer.burn_hash_key_status_label = (
-                "Already Burned (not the same)"
+            burn_hash_key_status_label = (
+                "Already Burned (not the same), searching for kingwo id..."
             )
             esp_rom.already_burned = True
             esp_rom.is_same_hash_key = False
-        elif is_the_same_block2 == -2:
-            torqeedo_programmer.burn_hash_key_status_label = (
-                "Error, try download content button"
+            asyncio.ensure_future(
+                torqeedo_programmer.api.getKingwoIdFromHashkey(
+                    torqeedo_programmer.selected_controller.hashkey_b64,
+                    burn_hash_key_status_label,
+                )
             )
+        elif is_the_same_block2 == -2:
+            burn_hash_key_status_label = "Error, try download content button"
             esp_rom.already_burned = False
             esp_rom.is_same_hash_key = False
         else:
-            torqeedo_programmer.burn_hash_key_status_label.config = (
-                "Not burned"
-            )
+            burn_hash_key_status_label.config = "Not burned"
             esp_rom.already_burned = False
             esp_rom.is_same_hash_key = False
-
-        print(str(esp_rom.efuses[0].blocks[2].id))
-        print(dir(esp_rom.efuses[0].blocks[2]))
-        print((esp_rom.efuses[0].blocks[2].bitarray))
+        print(burn_hash_key_status_label)
+        # print(str(esp_rom.efuses[0].blocks[2].id))
+        # print(dir(esp_rom.efuses[0].blocks[2]))
+        # print((esp_rom.efuses[0].blocks[2].bitarray))
     else:
         print("No esp connected")
         serial_connection_status_label.config(
@@ -161,6 +165,7 @@ def click_test_serial_connection(
 def render_test_serial_connection_frame(
     middle_column_frame: Frame,
     torqeedo_programmer: TorqeedoProgrammer,
+    burn_hash_key_status_label: Label,
 ):
 
     test_serial_connection_label = Label(
@@ -176,6 +181,7 @@ def render_test_serial_connection_frame(
             serial_connection_status_label,
             secure_boot_status_label,
             mac_address_label,
+            burn_hash_key_status_label,
         ),
     )
     test_serial_connection_button.pack(padx=10, pady=10)
