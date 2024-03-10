@@ -3,6 +3,8 @@ from tkinter.ttk import Label, Button, Frame, Progressbar
 from torqeedo_programmer import TorqeedoProgrammer
 from tkinter import IntVar
 from torqeedo_controller import BootloaderFlashedStatus
+import threading
+import queue
 
 
 class Dict2Class(object):
@@ -14,8 +16,7 @@ class Dict2Class(object):
 
 
 async def flash_bootload(
-    torqeedo_programmer: TorqeedoProgrammer,
-    update_flash_bootloader_form_progress_bar: callable,
+    torqeedo_programmer: TorqeedoProgrammer, progress_queue: queue.Queue
 ):
     print("flash_bootloader_clicked")
 
@@ -48,10 +49,20 @@ async def flash_bootload(
             torqeedo_programmer.selected_controller.esp_rom.esp.run_stub()
         )
 
-    torqeedo_programmer.selected_controller.esp_rom.write_flash(
-        args, update_flash_bootloader_form_progress_bar
-    )
+    # Ensuring the ESP tool runs in a non-blocking way
+    def run_write_flash(progress_queue):
+        def update_progress(value):
+            progress_queue.put(value)
 
+        torqeedo_programmer.selected_controller.esp_rom.write_flash(
+            args, update_progress
+        )
+
+    # Run the blocking operation in a separate thread
+    thread = threading.Thread(target=run_write_flash, args=(progress_queue,))
+    thread.start()
+    while thread.is_alive():
+        await asyncio.sleep(0.1)
     torqeedo_programmer.selected_controller.bootloader_flashed = (
         BootloaderFlashedStatus.FLASHED
     )
@@ -59,19 +70,15 @@ async def flash_bootload(
 
 def flash_bootloader_clicked(
     torqeedo_programmer: TorqeedoProgrammer,
-    update_flash_bootloader_form_progress_bar: callable,
+    progress_queue: queue.Queue,
     progress_var: IntVar,
 ):
     progress_var.set(0)
+
     torqeedo_programmer.selected_controller.bootloader_flashed = (
         BootloaderFlashedStatus.IN_PROGRESS
     )
-    asyncio.ensure_future(
-        flash_bootload(
-            torqeedo_programmer,
-            update_flash_bootloader_form_progress_bar,
-        )
-    )
+    asyncio.ensure_future(flash_bootload(torqeedo_programmer, progress_queue))
 
 
 def render_flash_bootloader_frame(
@@ -81,23 +88,19 @@ def render_flash_bootloader_frame(
     progress_var = IntVar()
     progress_var.set(0)
 
-    def update_flash_bootloader_form_progress_bar(value):
-        print("===========")
-        print(value)
-        print("===========")
-        progress_var.set(value)
-
     flash_bootloader_label = Label(
         middle_column_frame, text="Flash bootloader and part table"
     )
     flash_bootloader_label.pack(padx=10, pady=5)
     # Bouton pour connecter au programmeur
+    progress_queue = queue.Queue()
+
     flash_bootloader_button = Button(
         middle_column_frame,
         text="Flash bootloader and part table",
         command=lambda: flash_bootloader_clicked(
             torqeedo_programmer,
-            update_flash_bootloader_form_progress_bar,
+            progress_queue,
             progress_var,
         ),
     )
@@ -117,6 +120,11 @@ def render_flash_bootloader_frame(
     flash_bootloader_status_label.pack(padx=10, pady=5)
 
     def check_flash_bootloader_status():
+        try:
+            progress_value = progress_queue.get_nowait()
+            progress_var.set(progress_value)
+        except queue.Empty:
+            pass  # Do nothing if the queue is empty
         if torqeedo_programmer.selected_controller is None:
             progress_var.set(0)
             flash_bootloader_button["state"] = "disabled"
