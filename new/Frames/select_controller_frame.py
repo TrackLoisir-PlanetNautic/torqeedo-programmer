@@ -13,6 +13,7 @@ from status import (
     BootloaderFlashedStatus,
     BurnHashKeyStatus,
     FirmwareFlashedStatus,
+    ConnectToPcbStatus,
 )
 
 
@@ -113,6 +114,9 @@ def render_select_controller_frame(
         )
         torqeedo_programmer.selected_controller.firmware_download_status = (
             DownloadFirmwareStatus.NOT_STARTED
+        )
+        torqeedo_programmer.selected_controller.connect_to_pcb_status = (
+            ConnectToPcbStatus.NOT_CONNECTED
         )
         torqeedo_programmer.selected_controller.burn_hash_key_status = (
             BurnHashKeyStatus.NOT_SCANNED

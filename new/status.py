@@ -8,6 +8,13 @@ class DownloadFirmwareStatus(Enum):
     SUCCESS = "success"
 
 
+class ConnectToPcbStatus(Enum):
+    NOT_CONNECTED = "not_connected"
+    IN_PROGRESS = "in_progress"
+    CONNECTED = "connected"
+    ERROR = "error"
+
+
 class BurnHashKeyStatus(Enum):
     IN_PROGRESS = "in_progress"
     NOT_SCANNED = "not_scanned"

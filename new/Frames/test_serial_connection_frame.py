@@ -3,6 +3,7 @@ from status import (
     BurnHashKeyStatus,
     FirmwareFlashedStatus,
     BootloaderFlashedStatus,
+    ConnectToPcbStatus,
 )
 from torqeedo_programmer import TorqeedoProgrammer
 from esp_rom import EspRom
@@ -60,30 +61,34 @@ def get_default_connected_device(
                     trace,
                     connect_attempts,
                 )
-                serial_connection_status_label.config(text="ESP connected")
+                serial_connection_status_label.config(
+                    text="Carte électronique connectée"
+                )
             else:
                 chip_class = CHIP_DEFS[chip]
                 _esp = chip_class(each_port, initial_baud, trace)
                 _esp.connect(before, connect_attempts)
-                serial_connection_status_label.config(text="ESP connected")
+                serial_connection_status_label.config(
+                    text="Carte électronique connectée"
+                )
             break
         except (esptool.FatalError, OSError) as err:
             if str(
                 "Failed to connect to Espressif device: No serial data received."
             ) in str(err):
                 serial_connection_status_label.config(
-                    text="ESP not connected (no serial data)"
+                    text="Erreur de connexion à la carte électronique (no serial data)"
                 )
             elif str(
                 "Failed to connect to ESP32: Invalid head of packet (0x01): Possible serial noise or corruption."
             ) in str(err):
                 print("connected but corrupted data")
                 serial_connection_status_label.config(
-                    text="ESP not connected (maybe already connected to another software, please kill it)"
+                    text="Erreur de connexion à la carte électronique (Vous êtes peut-être déjà connecté à la carte avec un autre logiciel)"
                 )
             else:
                 serial_connection_status_label.config(
-                    text="ESP not connected (error)"
+                    text="Erreur de connexion à la carte électronique (erreur indéfinie)"
                 )
 
             print("%s failed to connect: %s" % (each_port, err))
@@ -100,7 +105,9 @@ def click_test_serial_connection(
     burn_hash_key_text: str,
 ):
     print("Test serial connection")
-
+    torqeedo_programmer.selected_controller.connect_to_pcb_status = (
+        ConnectToPcbStatus.IN_PROGRESS
+    )
     connected_esp = get_default_connected_device(
         [torqeedo_programmer.selected_serial_port],
         connect_attempts=1,
@@ -151,11 +158,17 @@ def click_test_serial_connection(
             esp_rom.already_burned = False
             esp_rom.is_same_hash_key = False
         print(burn_hash_key_text)
+        torqeedo_programmer.selected_controller.connect_to_pcb_status = (
+            ConnectToPcbStatus.CONNECTED
+        )
         # print(str(esp_rom.efuses[0].blocks[2].id))
         # print(dir(esp_rom.efuses[0].blocks[2]))
         # print((esp_rom.efuses[0].blocks[2].bitarray))
     else:
         print("No esp connected")
+        torqeedo_programmer.selected_controller.connect_to_pcb_status = (
+            ConnectToPcbStatus.ERROR
+        )
         serial_connection_status_label.config(
             text="Erreur de connexion, vérifiez le branchement"
         )
@@ -176,7 +189,6 @@ def render_test_serial_connection_frame(
         middle_column_frame, text="Test de connexion"
     )
     test_serial_connection_label.pack(padx=10, pady=5)
-
     test_serial_connection_button = Button(
         middle_column_frame,
         text="Test serial connection",
@@ -190,7 +202,7 @@ def render_test_serial_connection_frame(
     test_serial_connection_button.pack(padx=10, pady=10)
 
     serial_connection_status_label = Label(
-        middle_column_frame, text="Not connected"
+        middle_column_frame, text="Aucune carte électronique connectée"
     )
     serial_connection_status_label.pack(padx=10, pady=5)
 
@@ -219,16 +231,32 @@ def render_test_serial_connection_frame(
                     text="Selectionnez un port série"
                 )
         else:
-            if torqeedo_programmer.selected_controller.bootloader_flashed_status == (
-                BootloaderFlashedStatus.IN_PROGRESS
-            ) or torqeedo_programmer.selected_controller.firmware_flashed_status == (
-                FirmwareFlashedStatus.IN_PROGRESS
+            if (
+                torqeedo_programmer.selected_controller.bootloader_flashed_status
+                == (BootloaderFlashedStatus.IN_PROGRESS)
+                or torqeedo_programmer.selected_controller.firmware_flashed_status
+                == (FirmwareFlashedStatus.IN_PROGRESS)
+                or torqeedo_programmer.selected_controller.connect_to_pcb_status
+                == (ConnectToPcbStatus.IN_PROGRESS)
             ):
                 test_serial_connection_button["state"] = "disabled"
             else:
                 test_serial_connection_button["state"] = "normal"
-            if torqeedo_programmer.selected_controller.esp_rom is None:
-                serial_connection_status_label.config(text="Not connected")
+            if (
+                torqeedo_programmer.selected_controller.connect_to_pcb_status
+                == ConnectToPcbStatus.IN_PROGRESS
+            ):
+                serial_connection_status_label.config(
+                    text="Connexion en cours"
+                )
+            elif (
+                torqeedo_programmer.selected_controller.esp_rom is None
+                and torqeedo_programmer.selected_controller.connect_to_pcb_status
+                == ConnectToPcbStatus.NOT_CONNECTED
+            ):
+                serial_connection_status_label.config(
+                    text="Carte électronique non connectée"
+                )
                 secure_boot_status_label.config(text="Secure boot status")
                 mac_address_label.config(text="MAC Address")
                 torqeedo_programmer.selected_controller.esp_rom = None

@@ -4,6 +4,7 @@ from status import (
     BootloaderFlashedStatus,
     FirmwareFlashedStatus,
     BurnHashKeyStatus,
+    ConnectToPcbStatus,
 )
 from torqeedo_programmer import TorqeedoProgrammer
 from tkinter import IntVar, messagebox
@@ -59,6 +60,9 @@ async def flash_firmware(
                 torqeedo_programmer.selected_controller.esp_rom = None
                 torqeedo_programmer.selected_controller.burn_hash_key_status = (
                     BurnHashKeyStatus.NOT_SCANNED
+                )
+                torqeedo_programmer.selected_controller.connect_to_pcb_status = (
+                    ConnectToPcbStatus.NOT_CONNECTED
                 )
                 torqeedo_programmer.selected_controller.bootloader_flashed_status = (
                     BootloaderFlashedStatus.NOT_FLASHED

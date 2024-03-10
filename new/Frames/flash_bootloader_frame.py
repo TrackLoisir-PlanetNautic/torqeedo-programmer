@@ -6,6 +6,7 @@ from torqeedo_controller import (
     BootloaderFlashedStatus,
     FirmwareFlashedStatus,
     BurnHashKeyStatus,
+    ConnectToPcbStatus,
 )
 import threading
 import queue
@@ -60,6 +61,9 @@ async def flash_bootload(
                 torqeedo_programmer.selected_controller.esp_rom = None
                 torqeedo_programmer.selected_controller.burn_hash_key_status = (
                     BurnHashKeyStatus.NOT_SCANNED
+                )
+                torqeedo_programmer.selected_controller.connect_to_pcb_status = (
+                    ConnectToPcbStatus.NOT_CONNECTED
                 )
                 torqeedo_programmer.selected_controller.bootloader_flashed_status = (
                     BootloaderFlashedStatus.NOT_FLASHED

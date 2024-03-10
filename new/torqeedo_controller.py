@@ -7,6 +7,7 @@ from status import (
     BurnHashKeyStatus,
     BootloaderFlashedStatus,
     FirmwareFlashedStatus,
+    ConnectToPcbStatus
 )
 from compilation_result import CompilationResult
 
@@ -25,6 +26,9 @@ class TorqeedoController(BaseModel):
     statusId: int
     hashkey_b64: bytes = None
     esp_rom: EspRom = None
+    connect_to_pcb_status: ConnectToPcbStatus = (
+        ConnectToPcbStatus.NOT_CONNECTED
+    )
     firmware_download_status: DownloadFirmwareStatus = (
         DownloadFirmwareStatus.NOT_STARTED
     )
