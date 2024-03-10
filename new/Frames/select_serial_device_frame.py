@@ -40,21 +40,21 @@ def on_combobox_input(
 
 
 def render_select_serial_device_frame(
-    first_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
+    left_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
 ):
-    first_column_frame.pack(side="left", expand=True, fill="both")
+    left_column_frame.pack(side="left", expand=True, fill="both")
     # Widget pour la sélection du port série
-    serial_ports_label = Label(first_column_frame, text="Sélection du port")
+    serial_ports_label = Label(left_column_frame, text="Sélection du port")
     serial_ports_label.pack(padx=10, pady=5)
     serial_ports_combo = Combobox(
-        first_column_frame,
+        left_column_frame,
         postcommand=lambda: on_combobox_input(
             serial_ports_combo, torqeedo_programmer
         ),
     )
     serial_ports_combo.pack(padx=10, pady=5)
     refresh_button = Button(
-        first_column_frame,
+        left_column_frame,
         text="Rafraîchir la liste",
         command=lambda: refresh_serial_ports(
             serial_ports_combo, torqeedo_programmer

@@ -75,13 +75,13 @@ def update_combobox_values(
 
 
 def render_select_controller_frame(
-    first_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
+    left_column_frame: Frame, torqeedo_programmer: TorqeedoProgrammer
 ):
     first_column_label = Label(
-        first_column_frame, text="Selection du contrôleur"
+        left_column_frame, text="Selection du contrôleur"
     )
     first_column_label.pack(padx=10, pady=5)
-    first_column_frame.pack(
+    left_column_frame.pack(
         side="left", expand=True, fill="both", padx=10, pady=10
     )
 
@@ -91,7 +91,7 @@ def render_select_controller_frame(
 
     # Création de la Combobox pour sélectionner kingwoId
     kingwoId_combobox = Combobox(
-        first_column_frame,
+        left_column_frame,
         postcommand=lambda: update_combobox_values(
             torqeedo_programmer,
             kingwoId_combobox,
@@ -135,7 +135,7 @@ def render_select_controller_frame(
 
     # Création du bouton de rafraîchissement
     refresh_button = Button(
-        first_column_frame,
+        left_column_frame,
         text="Rafraîchir la liste",
         command=lambda: refresh_controller_list(
             torqeedo_programmer,
@@ -149,7 +149,7 @@ def render_select_controller_frame(
 
     # CheckBox pour filtrer lastPing = 0
     filter_checkbox = Checkbutton(
-        first_column_frame,
+        left_column_frame,
         text="Filtrer par lastPing = 0",
         variable=filter_last_ping,
         command=lambda: update_combobox_values(
