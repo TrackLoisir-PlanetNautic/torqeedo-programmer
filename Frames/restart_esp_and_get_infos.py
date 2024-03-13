@@ -20,7 +20,7 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                 try:
                     x = ser.readline().decode()
                     print(x)
-                    if ("just started" in x):
+                    if "just started" in x:
                         break
                     if "VERSION_NUMBER" in x:
                         compilation_result.VERSION_NUMBER = (
@@ -100,6 +100,9 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                         "Can't read serial port (maybe already open by another software ?)"
                     )
         print(compilation_result)
+        torqeedo_programmer.selected_controller.compilation_result = (
+            compilation_result
+        )
     except Exception as e:
         print(e)
         return
@@ -123,7 +126,9 @@ def render_restart_esp_and_get_infos_frame(
             torqeedo_programmer,
         ),
     )
-    restart_esp_and_get_infos_button.grid(row=13, column=0, columnspan=2, padx=10, pady=5)
+    restart_esp_and_get_infos_button.grid(
+        row=13, column=0, columnspan=2, padx=10, pady=5
+    )
 
     def restart_esp_and_get_infos_status():
         if (

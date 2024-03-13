@@ -14,6 +14,12 @@ def render_display_compilation_result_frame(
     compilation_result_label = Label(right_column_frame, text="")
     compilation_result_label.pack(padx=10, pady=10)
 
+    mode_label = Label(right_column_frame, text="")
+    mode_label.pack(padx=10, pady=10)
+
+    real_time_compilation_result_label = Label(right_column_frame, text="")
+    real_time_compilation_result_label.pack(padx=10, pady=10)
+
     def restart_esp_and_get_infos_status():
         if torqeedo_programmer.selected_controller is None:
             show_error_label.config(text="Error: No controller selected")
@@ -32,11 +38,12 @@ def render_display_compilation_result_frame(
             compilation_result: CompilationResult = (
                 torqeedo_programmer.selected_controller.compilation_result
             )
-            for line in compilation_result.lines:
-                # add a new line after each line
-                compilation_result_label.config(
-                    text=compilation_result_label.cget("text") + line + "\n"
-                )
+            # display each line of the compilation result in the label
+            mode_label.config(text="Mode: " + compilation_result.MODE)
+            compilation_result_label.config(
+                text="Compilation result: "
+                + compilation_result.REAL_COMPILATION_TIME
+            )
             # todo display a messagebox error if kingwoId not the same as the one in the firmware
 
         right_column_frame.after(

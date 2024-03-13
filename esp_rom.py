@@ -380,44 +380,28 @@ class EspRom(BaseModel):
     ):
         block_name = blk
         # efuses.force_write_always = False
-        print(efuses[0])
-        print(blk)
-        print(hashkey_b64)
-        print(no_protect_key)
-
         print("Burn keys to blocks:")
         efuse = None
         for block in efuses[0].blocks:
             if block_name == block.name or block_name in block.alias:
                 efuse = efuses[0][block.name]
-        print("yo")
         if efuse is None:
             raise esptool.FatalError("Unknown block name - %s" % (block_name))
-        print("yo2")
         num_bytes = efuse.bit_len // 8
         data = hashkey_b64
-        print(type(data))
         revers_msg = None
         if block_name in ("flash_encryption", "secure_boot_v1"):
             revers_msg = "\tReversing the byte order"
             data = data[::-1]
-        print("yo3")
-        print(type(data))
-        print(efuse.name)
-        print(data)
-
         print(" - %s -> [%s]" % (efuse.name, hexify(data, " ")))
-        print("yo4")
         if revers_msg:
             print(revers_msg)
-        print("yo5")
         if len(data) != num_bytes:
             raise esptool.FatalError(
                 "Incorrect key file size %d. "
                 "Key file must be %d bytes (%d bits) of raw binary key data."
                 % (len(data), num_bytes, num_bytes * 8)
             )
-        print("yo6")
         efuse.save(data)
 
         if block_name in ("flash_encryption", "secure_boot_v1"):
