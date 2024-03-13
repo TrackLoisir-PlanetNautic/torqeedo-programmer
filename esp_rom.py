@@ -185,9 +185,9 @@ class EspRom(BaseModel):
         print("------")
         print(str(self.efuses[0].blocks[2].bitarray)[2:])
         returnedNewBitString = ""
-        for i in range(0, int(len(hexify(hashkey_b64))), 2):
-            returnedNewBitString += str(hexify(hashkey_b64))[i + 1]
-            returnedNewBitString += str(hexify(hashkey_b64))[i]
+        for i in range(0, int(len(hexify(hashkey_b64, False))), 2):
+            returnedNewBitString += str(hexify(hashkey_b64, False))[i + 1]
+            returnedNewBitString += str(hexify(hashkey_b64, False))[i]
         print(returnedNewBitString[::-1])
         print("------")
 
@@ -206,7 +206,6 @@ class EspRom(BaseModel):
     async def burn_sign_hask_key(
         self,
         torqeedo_programmer,
-        hashkey_b64: bytes,
         update_burn_hash_key_progress_bar: callable,
         burn_hash_key_status_label: Label,
     ):
@@ -224,15 +223,20 @@ class EspRom(BaseModel):
                 time.sleep(0.25)
                 self._burn_key(
                     self.esp,
-                    self.efuses[0],
+                    self.efuses,
                     "secure_boot_v2",
-                    hashkey_b64,
+                    torqeedo_programmer.selected_controller.hashkey_b64,
                     True,
                     None,
                 )
                 time.sleep(0.25)
                 self.efuses = self.get_efuses(self.esp)
-                if self.is_the_same_block2() != 1:
+                if (
+                    self.is_the_same_block2(
+                        torqeedo_programmer.selected_controller.hashkey_b64
+                    )
+                    != 1
+                ):
                     burn_hash_key_status_label.config(
                         text="Burn key failed !!"
                     )
@@ -244,7 +248,8 @@ class EspRom(BaseModel):
                 torqeedo_programmer.selected_controller.burn_hash_key_status = (
                     BurnHashKeyStatus.BURNED_SAME
                 )
-            except Exception:
+            except Exception as e:
+                print(e)
                 print("ERROR : can't burn now !")
         else:
             print("Key already burned")
@@ -370,33 +375,49 @@ class EspRom(BaseModel):
         else:
             print("Successful")
 
-    def _burn_key(self, esp, efuses, blk, key: bytes, no_protect_key, args):
+    def _burn_key(
+        self, esp, efuses, blk: str, hashkey_b64: bytes, no_protect_key, args
+    ):
         block_name = blk
         # efuses.force_write_always = False
+        print(efuses[0])
+        print(blk)
+        print(hashkey_b64)
+        print(no_protect_key)
 
         print("Burn keys to blocks:")
         efuse = None
-        for block in efuses.blocks:
+        for block in efuses[0].blocks:
             if block_name == block.name or block_name in block.alias:
-                efuse = efuses[block.name]
+                efuse = efuses[0][block.name]
+        print("yo")
         if efuse is None:
             raise esptool.FatalError("Unknown block name - %s" % (block_name))
+        print("yo2")
         num_bytes = efuse.bit_len // 8
-        data = key
+        data = hashkey_b64
+        print(type(data))
         revers_msg = None
         if block_name in ("flash_encryption", "secure_boot_v1"):
             revers_msg = "\tReversing the byte order"
             data = data[::-1]
+        print("yo3")
+        print(type(data))
+        print(efuse.name)
+        print(data)
+
         print(" - %s -> [%s]" % (efuse.name, hexify(data, " ")))
+        print("yo4")
         if revers_msg:
             print(revers_msg)
+        print("yo5")
         if len(data) != num_bytes:
             raise esptool.FatalError(
                 "Incorrect key file size %d. "
                 "Key file must be %d bytes (%d bits) of raw binary key data."
                 % (len(data), num_bytes, num_bytes * 8)
             )
-
+        print("yo6")
         efuse.save(data)
 
         if block_name in ("flash_encryption", "secure_boot_v1"):
@@ -419,7 +440,7 @@ class EspRom(BaseModel):
             msg += "The key block will be read and write protected "
             "(no further changes or readback)"
         print(msg, "\n")
-        if not efuses.burn_all(check_batch_mode=True):
+        if not efuses[0].burn_all(check_batch_mode=True):
             return
         print("Successful")
 
@@ -516,9 +537,7 @@ class EspRom(BaseModel):
             image = image[0:2] + flash_params + image[4:]
         return image
 
-    def write_flash(
-        self, args, update_flash_progress_bar: callable
-    ):
+    def write_flash(self, args, update_flash_progress_bar: callable):
         try:
             # set args.compress based on default behaviour:
             # -> if either --compress or --no-compress is set, honour that
@@ -784,9 +803,7 @@ class EspRom(BaseModel):
 
                 while len(image) > 0:
                     if blocks > 1:
-                        update_flash_progress_bar(
-                            100 * (seq + 1) // blocks
-                        )
+                        update_flash_progress_bar(100 * (seq + 1) // blocks)
                     else:
                         update_flash_progress_bar(0)
                     # progressBar.setValue(100 * (seq + 1) // blocks)

@@ -40,7 +40,7 @@ def flash_size_bytes(size):
         raise FatalError("Unknown size %s" % size)
 
 
-def hexify(s, uppercase=True):
+def hexify(s: str, uppercase=True):
     format_str = "%02X" if uppercase else "%02x"
     return "".join(format_str % c for c in s)
 
@@ -66,7 +66,7 @@ def print_overwrite(message, last_line=False):
     """
     if sys.stdout.isatty():
         print(message)
-        #print("\r%s" % message, end="\n" if last_line else "")
+        # print("\r%s" % message, end="\n" if last_line else "")
     else:
         print(message)
 
@@ -139,7 +139,8 @@ class NotSupportedError(FatalError):
     def __init__(self, esp, function_name):
         FatalError.__init__(
             self,
-            "Function %s is not supported for %s." % (function_name, esp.CHIP_NAME),
+            "Function %s is not supported for %s."
+            % (function_name, esp.CHIP_NAME),
         )
 
 
@@ -152,7 +153,10 @@ class UnsupportedCommandError(RuntimeError):
 
     def __init__(self, esp, op):
         if esp.secure_download_mode:
-            msg = "This command (0x%x) is not supported in Secure Download Mode" % op
+            msg = (
+                "This command (0x%x) is not supported in Secure Download Mode"
+                % op
+            )
         else:
             msg = "Invalid (unsupported) command 0x%x" % op
         RuntimeError.__init__(self, msg)
