@@ -16,14 +16,13 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
         with serial.Serial(
             torqeedo_programmer.selected_serial_port, 115200, timeout=1
         ) as ser:
-            for i in range(73):
+            for i in range(300):
                 try:
                     x = ser.readline().decode()
                     print(x)
+                    if ("just started" in x):
+                        break
                     if "VERSION_NUMBER" in x:
-                        print("VERSION NUMBER")
-                        print(x)
-
                         compilation_result.VERSION_NUMBER = (
                             x.split("VERSION_NUMBER :")[-1].lstrip()
                         ).split("\x1b")[0]
@@ -94,7 +93,8 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                         ]
                         if arr[0].isnumeric():
                             compilation_result.PART_TABLE.append(arr)
-                except Exception:
+                except Exception as e:
+                    print(e)
                     compilation_result.ERROR = "Can't read serial port (maybe already open by another software ?)"
                     print(
                         "Can't read serial port (maybe already open by another software ?)"

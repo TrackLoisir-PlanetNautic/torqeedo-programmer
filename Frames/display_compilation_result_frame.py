@@ -33,7 +33,10 @@ def render_display_compilation_result_frame(
                 torqeedo_programmer.selected_controller.compilation_result
             )
             for line in compilation_result.lines:
-                compilation_result_label.config(text=line)
+                # add a new line after each line
+                compilation_result_label.config(
+                    text=compilation_result_label.cget("text") + line + "\n"
+                )
             # todo display a messagebox error if kingwoId not the same as the one in the firmware
 
         right_column_frame.after(

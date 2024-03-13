@@ -17,5 +17,5 @@ class CompilationResult(BaseModel):
     APP_VERSION: Optional[str] = None
     SECURE_BOOT_V2_ENABLED_BOOTLOADER_STAGE2: Optional[bool] = None
     SECURE_BOOT_V2_CHECK_OK_BOOTLOADER: Optional[bool] = None
-    PART_TABLE: Optional[bool] = None
+    PART_TABLE: Optional[List[bool]] = []
     ERROR: Optional[str] = None

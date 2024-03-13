@@ -217,7 +217,7 @@ class EspRom(BaseModel):
             try:
                 update_burn_hash_key_progress_bar(0)
                 self._burn_efuse(
-                    self.esp, self.efuses[0], "ABS_DONE_1", 1, None
+                    self.esp, self.efuses, "ABS_DONE_1", 1, None
                 )
                 update_burn_hash_key_progress_bar(50)
                 time.sleep(0.25)
@@ -270,13 +270,13 @@ class EspRom(BaseModel):
                     )
 
         efuse_name_list = [efuse_name]
-        burn_efuses_list = [efuses[name] for name in efuse_name_list]
-        old_value_list = [efuses[name].get_raw() for name in efuse_name_list]
+        burn_efuses_list = [efuses[0][name] for name in efuse_name_list]
+        old_value_list = [efuses[0][name].get_raw() for name in efuse_name_list]
         new_value_list = [value]
 
         attention = ""
         print("The efuses to burn:")
-        for block in efuses.blocks:
+        for block in efuses[0].blocks:
             burn_list_a_block = [
                 e for e in burn_efuses_list if e.block == block.id
             ]
@@ -285,11 +285,11 @@ class EspRom(BaseModel):
                 for field in burn_list_a_block:
                     print("     - %s" % (field.name))
                     if (
-                        efuses.blocks[field.block].get_coding_scheme()
-                        != efuses.REGS.CODING_SCHEME_NONE
+                        efuses[0].blocks[field.block].get_coding_scheme()
+                        != efuses[0].REGS.CODING_SCHEME_NONE
                     ):
                         using_the_same_block_names = [
-                            e.name for e in efuses if e.block == field.block
+                            e.name for e in efuses[0] if e.block == field.block
                         ]
                         wr_names = [e.name for e in burn_list_a_block]
                         blocked_efuses_after_burn = [
@@ -346,7 +346,7 @@ class EspRom(BaseModel):
             )
             print("                        espefuse/esptool will not work.")
 
-        if not efuses.burn_all(check_batch_mode=True):
+        if not efuses[0].burn_all(check_batch_mode=True):
             return
 
         print("Checking efuses...")
