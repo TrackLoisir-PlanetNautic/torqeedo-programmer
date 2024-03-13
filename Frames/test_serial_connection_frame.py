@@ -262,7 +262,7 @@ def render_test_serial_connection_frame(
                 secure_boot_status_label.config(text="Secure boot status")
                 mac_address_label.config(text="MAC Address")
                 torqeedo_programmer.selected_controller.esp_rom = None
-                torqeedo_programmer.selected_controller.hashkey_b64 = None
+                # torqeedo_programmer.selected_controller.hashkey_b64 = None
         if (
             torqeedo_programmer.selected_controller is not None
             and torqeedo_programmer.selected_controller.esp_rom is not None
