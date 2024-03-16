@@ -6,6 +6,8 @@ from config_manager import ConfigManager
 from PIL import Image, ImageTk
 from Frames.main_frame import open_main_frame
 from torqeedo_programmer import TorqeedoProgrammer
+import os
+import sys
 
 
 # Fonction asynchrone pour gérer la connexion
@@ -77,7 +79,11 @@ def init_login_frame(root_window: Toplevel):
     login_frame.pack(padx=40, pady=20, expand=True)
 
     # Load and resize the logo proportionally
-    original_image = Image.open("Ressources/Full_logo_black.png")
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    image_path = os.path.join(base_path, '..', 'Ressources', 'Full_logo_black.png')
+    original_image = Image.open(image_path)
     target_width = 150
     original_width, original_height = original_image.size
     ratio = target_width / original_width
