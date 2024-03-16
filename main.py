@@ -3,8 +3,10 @@ import aiotkinter
 from Frames.login_form import init_login_frame
 from ttkthemes import ThemedTk
 
+
 async def close_program(loop):
     loop.stop()
+
 
 if __name__ == "__main__":
     asyncio.set_event_loop_policy(aiotkinter.TkinterEventLoopPolicy())
