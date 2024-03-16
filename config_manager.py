@@ -4,9 +4,13 @@ import os
 
 class ConfigManager:
     def __init__(self, filepath="config.json"):
-        # for development mode
+        if os.path.exists("Ressources"):
+            filepath = "Ressources/" + filepath
         if not os.path.exists(filepath):
-            filepath = "Ressources/config.json"
+            # create file
+            with open(filepath, "w") as f:
+                f.write("{}")
+
         self.filepath = filepath
         self.config = {}
         self.load_config()
