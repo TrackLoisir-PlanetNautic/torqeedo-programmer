@@ -7,7 +7,6 @@ from PIL import Image, ImageTk
 from Frames.main_frame import open_main_frame
 from torqeedo_programmer import TorqeedoProgrammer
 import os
-import sys
 
 
 # Fonction asynchrone pour gérer la connexion
@@ -79,16 +78,10 @@ def init_login_frame(root_window: Toplevel):
     login_frame.pack(padx=40, pady=20, expand=True)
 
     # Load and resize the logo proportionally
-    base_path = getattr(
-        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-    )
-    image_path = os.path.join(base_path, "Full_logo_black.png")
-    # Vérifiez si le chemin existe et ajustez si nécessaire.
-    if not os.path.exists(
-        image_path
-    ):  # Fallback si le chemin n'est pas correct.
-        # Si exécuté directement (pas depuis un bundle), utilisez le chemin relatif original.
-        image_path = os.path.join("Ressources", "Full_logo_black.png")
+    image_path = "Full_logo_black.png"
+    # check if file path exists
+    if not os.path.exists(image_path):
+        image_path = "Ressources/Full_logo_black.png"
 
     original_image = Image.open(image_path)
     target_width = 150

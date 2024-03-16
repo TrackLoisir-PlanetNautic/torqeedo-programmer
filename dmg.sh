@@ -2,7 +2,7 @@
 
 # Nom du projet et version de l'application
 APP_NAME="ToreedoProgrammer"
-VERSION="1.4"
+VERSION="1.9"
 
 # Création de l'environnement virtuel si non existant
 if [ ! -d "venv" ]; then
@@ -22,7 +22,7 @@ cat > setup.py <<EOF
 from setuptools import setup
 
 APP = ['main.py']
-DATA_FILES = ['Ressources/Full_logo_black.png']
+DATA_FILES = [('images'),['Ressources/Full_logo_black.png'])]
 PACKAGES = ['Frames', 'certifi', 'esptool', 'espefuse', espsecure']
 OPTIONS = {
     'argv_emulation': True,
@@ -45,4 +45,4 @@ fi
 python setup.py py2app
 
 # Création du fichier .dmg
-hdiutil create dist/$APP_NAME-$VERSION.dmg -volname "$APP_NAME $VERSION" -srcfolder dist/$APP_NAME-$VERSION.app
+hdiutil create dist/$APP_NAME-$VERSION.dmg -volname "$APP_NAME $VERSION" -srcfolder dist/$APP_NAME.app
