@@ -2,7 +2,7 @@
 
 # Nom du projet et version de l'application
 APP_NAME="ToreedoProgrammer"
-VERSION="1.9"
+VERSION="2.0.0"
 
 # Création de l'environnement virtuel si non existant
 if [ ! -d "venv" ]; then

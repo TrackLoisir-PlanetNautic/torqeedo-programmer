@@ -77,9 +77,8 @@ def init_login_frame(root_window: Toplevel):
     # Increase padx here for a wider frame effect
     login_frame.pack(padx=40, pady=20, expand=True)
 
-    # Load and resize the logo proportionally
     image_path = "Full_logo_black.png"
-    # check if file path exists
+    # for development mode
     if not os.path.exists(image_path):
         image_path = "Ressources/Full_logo_black.png"
 
