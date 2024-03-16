@@ -2,7 +2,7 @@
 
 # Nom du projet et version de l'application
 APP_NAME="ToreedoProgrammer"
-VERSION="2.0.4"
+VERSION="2.0.7"
 
 # Création de l'environnement virtuel si non existant
 if [ ! -d "venv" ]; then
@@ -25,7 +25,6 @@ APP = ['main.py']
 DATA_FILES = [('images'),['Ressources/Full_logo_black.png'])]
 PACKAGES = ['Frames', 'certifi', 'esptool', 'espefuse', espsecure']
 OPTIONS = {
-    'argv_emulation': True,
     'packages': PACKAGES,
     'resources': DATA_FILES,
 }
