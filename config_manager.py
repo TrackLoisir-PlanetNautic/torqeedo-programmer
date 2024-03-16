@@ -1,17 +1,30 @@
 import json
 import os
+from pathlib import Path
 
 
 class ConfigManager:
     def __init__(self, filepath="config.json"):
+        # Déterminer le dossier de support de l'application
         if os.path.exists("Ressources"):
-            filepath = "Ressources/" + filepath
-        if not os.path.exists(filepath):
-            # create file
-            with open(filepath, "w") as f:
+            self.filepath = "Ressources/" + filepath
+        else:
+            app_support_dir = (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "ToreedoProgrammer"
+            )
+            app_support_dir.mkdir(parents=True, exist_ok=True)
+
+            # Chemin complet du fichier de configuration
+            self.filepath = app_support_dir / filepath
+
+        # Vérifier l'existence du fichier de configuration, le créer si nécessaire
+        if not os.path.exists(self.filepath):
+            with open(self.filepath, "w") as f:
                 f.write("{}")
 
-        self.filepath = filepath
         self.config = {}
         self.load_config()
 
