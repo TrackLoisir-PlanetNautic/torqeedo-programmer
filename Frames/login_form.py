@@ -82,7 +82,14 @@ def init_login_frame(root_window: Toplevel):
     base_path = getattr(
         sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
     )
-    image_path = os.path.join(base_path, '..', 'Ressources', 'Full_logo_black.png')
+    image_path = os.path.join(base_path, "Full_logo_black.png")
+    # Vérifiez si le chemin existe et ajustez si nécessaire.
+    if not os.path.exists(
+        image_path
+    ):  # Fallback si le chemin n'est pas correct.
+        # Si exécuté directement (pas depuis un bundle), utilisez le chemin relatif original.
+        image_path = os.path.join("Ressources", "Full_logo_black.png")
+
     original_image = Image.open(image_path)
     target_width = 150
     original_width, original_height = original_image.size
