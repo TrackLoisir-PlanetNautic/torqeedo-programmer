@@ -19,3 +19,4 @@ class CompilationResult(BaseModel):
     SECURE_BOOT_V2_CHECK_OK_BOOTLOADER: Optional[bool] = None
     PART_TABLE: Optional[List[bool]] = []
     ERROR: Optional[str] = None
+    GITHUB_TAG: Optional[str] = None

@@ -76,6 +76,10 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                         compilation_result.SECURE_BOOT_V2_CHECK_OK_BOOTLOADER = (
                             True
                         )
+                    if "GITHUB_TAG" in x:
+                        compilation_result.GITHUB_TAG = (
+                            x.split("GITHUB_TAG :")[-1].lstrip()
+                        ).split("\x1b")[0]
                     if "Partition Table:" in x:
                         inPartTableDesc = True
                     if "End of partition table" in x:
@@ -99,6 +103,7 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                     print(
                         "Can't read serial port (maybe already open by another software ?)"
                     )
+                    return
         print(compilation_result)
         torqeedo_programmer.selected_controller.compilation_result = (
             compilation_result
