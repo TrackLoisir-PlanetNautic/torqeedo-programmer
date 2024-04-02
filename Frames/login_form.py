@@ -123,7 +123,7 @@ def init_login_frame(root_window: Toplevel):
     status_label = Label(login_frame, text="", style="TLabel")
     status_label.pack(pady=(0, 10))
 
-    api_instance = API(base_url="https://app.trackloisirs.com/api")
+    api_instance = API(base_url="https://api.trackloisirs.com/api")
     torqeedo_programmer = TorqeedoProgrammer(api=api_instance)
 
     login_button = Button(
