@@ -4,7 +4,11 @@ import aiohttp
 from torqeedo_controller import TorqeedoController, DownloadFirmwareStatus
 import base64
 from tkinter.ttk import Label
+import ssl
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 # Nouvelle définition de la classe API utilisant aiohttp pour
 # des appels asynchrones
@@ -19,7 +23,7 @@ class API(BaseModel):
     signed_hash_key: bytes = None
 
     async def connectToWebsite(self, email, password):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
             url = self.base_url + "/frontend/account/login"
             params = {
                 "email": email,
@@ -47,7 +51,7 @@ class API(BaseModel):
             + "/backend/pythonProgrammer/getTorqeedoControllersList"
         )
         headers = {"Authorization": "Bearer " + self.accessToken}
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
             async with session.get(url, headers=headers) as res:
                 res.raise_for_status()
                 data = await res.json()
@@ -76,7 +80,7 @@ class API(BaseModel):
             "authorization": "Bearer " + self.accessToken,
             "torqctrlid": str(torqeedo_controller.torqCtrlId),
         }
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
             async with session.get(url, headers=headers) as res:
                 if res.status != 200:
                     print("Failed to download:", res.reason)
@@ -116,7 +120,7 @@ class API(BaseModel):
             }
             print("Downloading hashkey")
             status_label.config(text="Downloading hashkey")
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
                 async with session.get(url, headers=headers) as res:
                     res.raise_for_status()
                     data = await res.json()
@@ -210,7 +214,7 @@ class API(BaseModel):
         headers = {"Authorization": "Bearer " + self.accessToken}
         data = {"hashkey_b64": base64.b64encode(hashkey_b64).decode("utf-8")}
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
                 async with session.post(
                     url, headers=headers, json=data
                 ) as res:
