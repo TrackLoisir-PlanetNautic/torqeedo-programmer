@@ -31,7 +31,7 @@ async def restart_esp_and_readline(torqeedo_programmer: TorqeedoProgrammer):
                             x.split("AES128_KEY :")[-1].lstrip()
                         ).split("\x1b")[0]
                     if "DEBUG :" in x:
-                        compilation_result.DEBUG.append(
+                        compilation_result.DEBUG = (
                             (x.split("DEBUG :")[-1].lstrip()).split("\x1b")[0]
                         )
                     if "REAL_COMPILATION_TIME" in x:
